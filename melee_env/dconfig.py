@@ -28,10 +28,12 @@ class DolphinConfig:
             self.data_path = self.home / "AppData/Roaming"
         elif self.platform == "linux":
             self.data_path = self.home / ".local/share"
+            #self.data_path =  self.home / "dev/Ishiiruka/"
         elif self.platform == "darwin":
             self.data_path = self.home / "Library/Application Support"
 
         self.slippi_path = self.data_path / "melee-env" / "Slippi"
+        #self.slippi_path = self.data_path 
 
         self.slippi_replays_path = self.slippi_path / "replays"
 
@@ -96,18 +98,20 @@ class DolphinConfig:
         with open(str(self.slippi_gecko_ini_path), 'r') as f:
             data = f.readlines()
 
-        if "Fast Forward" not in data[18]:
+        line_num = 7400
+
+        if data[line_num].find("Forward")  == -1:
             raise FileNotFoundError(f"Error: cannot locate Fast Forward Gecko code in "
                  "{self.slippi_gecko_ini_path}, please ensure it is located in this "
-                 "file, and that it is on line 19!")
+                 "file, and that it is on line {line_num}!")
 
-        if data[18][0] == "-" and enable: 
-            data[18] = "$Optional: Fast Forward\n"
+        if data[line_num][0] == "-" and enable: 
+            data[line_num] = "$Optional: Fast Forward\n"
             with open(str(self.slippi_gecko_ini_path), 'w') as f:
                 f.writelines(data)
 
-        elif data[18][0] == "$" and not enable:
-            data[18] = "-Optional: Fast Forward\n"
+        elif data[line_num][0] == "$" and not enable:
+            data[line_num] = "-Optional: Fast Forward\n"
             with open(str(self.slippi_gecko_ini_path), 'w') as f:
                 f.writelines(data)
 
@@ -118,18 +122,21 @@ class DolphinConfig:
         with open(str(self.slippi_gecko_ini_path), 'r') as f:
             data = f.readlines()
 
-        if "Center Align 2P HUD" not in data[16]:
+        line_num = 7301
+        print(data[line_num])
+
+        if "Center Align 2P HUD" not in data[line_num]:
             raise FileNotFoundError(f"Error: cannot locate Fast Forward Gecko code in "
                  "{self.slippi_gecko_ini_path}, please ensure it is located in this "
-                 "file, and that it is on line 19!")
+                 "file, and that it is on line {line_num}!")
 
-        if data[16][0] == "-" and enable: 
-            data[16] = "$" + data[16][1:]
+        if data[line_num][0] == "-" and enable: 
+            data[line_num] = "$" + data[line_num][1:]
             with open(str(self.slippi_gecko_ini_path), 'w') as f:
                 f.writelines(data)
 
-        elif data[16][0] == "$" and not enable:
-            data[16] = "-" + data[16][1:]
+        elif data[line_num][0] == "$" and not enable:
+            data[line_num] = "-" + data[line_num][1:]
             with open(str(self.slippi_gecko_ini_path), 'w') as f:
                 f.writelines(data)
 
@@ -177,7 +184,8 @@ class DolphinConfig:
 
     def install_slippi(self, install_path):
         if self.platform == "linux":
-            target_url = "https://github.com/project-slippi/Ishiiruka/releases/latest/download/Slippi_Online-x86_64.AppImage"
+            target_url = "https://github.com/project-slippi/Ishiiruka/releases/download/v3.4.0/Slippi_Online-x86_64.AppImage"
+            #target_url = "https://github.com/project-slippi/Ishiiruka/releases/latest/download/Slippi_Online-x86_64.AppImage"
 
         elif self.platform == "win32":
             target_url = "https://github.com/project-slippi/Ishiiruka/releases/download/v2.3.1/FM-Slippi-2.3.1-Win.zip"
@@ -190,10 +198,14 @@ class DolphinConfig:
         install_path.mkdir(parents=True, exist_ok=True)
 
         # Download latest version of slippi
-        slippi_game_path = self._download_file(target_url)
+        #slippi_game_path = self._download_file(target_url)
+        slippi_game_path = Path("../Ishiiruka/Slippi_Online-x86_64.AppImage").resolve()
 
         # move to our directory
-        slippi_game_path = slippi_game_path.rename(install_path / slippi_game_path.name)
+        shutil.copy(slippi_game_path, install_path / slippi_game_path.name)
+
+        #slippi_game_path = slippi_game_path.rename(install_path / slippi_game_path.name)
+        slippi_game_path = install_path / slippi_game_path.name
 
         if self.platform == "linux":
             print("Dolphin will open and then close to generate files")
@@ -215,8 +227,9 @@ class DolphinConfig:
                 shell=True,
                 preexec_fn=os.setsid)
 
-            time.sleep(2)
+            time.sleep(5)
             os.killpg(os.getpgid(process.pid), signal.SIGTERM) # send kill signal
+            time.sleep(5)
 
 
 
@@ -239,8 +252,10 @@ class DolphinConfig:
 
     def apply_gecko_codes(self, install_path):
         # get most up-to-date codes:
-        gale01r2_url = "https://raw.githubusercontent.com/altf4/slippi-ssbm-asm/libmelee/Output/Netplay/GALE01r2.ini"
-        gale01r2_path = self._download_file(gale01r2_url)
+
+        #todo: download this and pin
+        #gale01r2_url = "https://raw.githubusercontent.com/altf4/slippi-ssbm-asm/libmelee/Output/Netplay/GALE01r2.ini"
+        gale01r2_path = self.install_data_path / "GALE01r2.ini"
 
         # Rename the old ini file
         self.slippi_gecko_ini_path.rename(self.slippi_gecko_ini_path.parents[0] / "GALE01r2.ini.old")
@@ -260,24 +275,26 @@ class DolphinConfig:
 
         # Surely the below can be done more cleanly with configparser
         # turn off recommended: apply delay to all in-game scenes
-        if data[13] == "$Recommended: Apply Delay to all In-Game Scenes\n":
-            data[13] = "-" + data[13][1:]  # turn this off
+        #print(data[13])
+        #if data[13] == "$Recommended: Apply Delay to all In-Game Scenes\n":
+            #data[13] = "-" + data[13][1:]  # turn this off
 
         # check that line 15 is empty before we start adding stuff
-        if data[14] != "\n":
-            raise FileNotFoundError("Something has gone wrong... check that {self.slippi_gecko_ini_path} exists.")
+        #print(data[14])
+        #if data[14] != "\n":
+            #raise FileNotFoundError("Something has gone wrong... check that {self.slippi_gecko_ini_path} exists.")
 
-        data.insert(14, "-Optional: Fast Forward\n")
-        data.insert(14, "-Optional: Flash Red on Failed L-Cancel\n")
-        data.insert(14, "$Optional: Center Align 2P HUD\n")
-        data.insert(14, "$Optional: Disable Screen Shake\n")
-        data.insert(14, "-Optional: Widescreen 16:9\n")
+        #data.insert(14, "-Optional: Fast Forward\n")
+        #data.insert(14, "-Optional: Flash Red on Failed L-Cancel\n")
+        #data.insert(14, "$Optional: Center Align 2P HUD\n")
+        #data.insert(14, "$Optional: Disable Screen Shake\n")
+        #data.insert(14, "-Optional: Widescreen 16:9\n")
 
-        with open(str(self.slippi_gecko_ini_path), 'w') as f:
-            f.writelines(data)
+        #with open(str(self.slippi_gecko_ini_path), 'w') as f:
+           # f.writelines(data)
 
         # cleanup
-        gale01r2_path.unlink()
+        #gale01r2_path.unlink()
 
     def configure_dolphin(self, install_path):
         if not self.config_path.exists():
@@ -288,6 +305,10 @@ class DolphinConfig:
         config.read_file(open(self.config_path))
         config['Core']['SlippiReplayDir'] = str(self.slippi_replays_path)
         config['Core']['SlippiReplayMonthFolders'] = "True"
+        config['Display']['Fullscreen'] = "False"
+        #config['Display']['RenderWindowWidth'] = '1'
+        #config['Display']['RenderWindowHeight'] = '1'
+
 
         with open(str(self.config_path), 'w') as outfile:
             config.write(outfile)

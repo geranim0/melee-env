@@ -4,6 +4,7 @@ from melee import enums
 import numpy as np
 import sys
 import time
+from pathlib import Path
 
 
 class MeleeEnv:
@@ -17,7 +18,7 @@ class MeleeEnv:
         self.d = DolphinConfig()
         self.d.set_ff(fast_forward)
 
-        self.iso_path = iso_path
+        self.iso_path = Path(iso_path).resolve()
         self.players = players
 
         # inform other players of other players

@@ -138,6 +138,7 @@ dmypy.json
 cython_debug/
 
 # melee-env
+Slippi_Online-x86_64.AppImage
 
 
 
