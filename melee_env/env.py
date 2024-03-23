@@ -136,4 +136,4 @@ class MeleeEnv:
         self.observation_space._reset()
         self.gamestate = None
         self.console.stop()
-        time.sleep(2) 
+        time.sleep(2)

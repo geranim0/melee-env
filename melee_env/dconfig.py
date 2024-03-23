@@ -199,7 +199,7 @@ class DolphinConfig:
 
         # Download latest version of slippi
         #slippi_game_path = self._download_file(target_url)
-        slippi_game_path = Path("../Ishiiruka/Slippi_Online-x86_64.AppImage").resolve()
+        slippi_game_path = Path("../Ishiiruka/Slippi_Online-x86_64.AppImage").resolve() # todo: make more future proof
 
         # move to our directory
         shutil.copy(slippi_game_path, install_path / slippi_game_path.name)
@@ -302,13 +302,14 @@ class DolphinConfig:
                  f"Then confirm that files exist in {self.config_path}")      
 
         config = configparser.ConfigParser()
+        #config.optionxform = str
+        config.optionxform = lambda option: option # case sensitive
         config.read_file(open(self.config_path))
         config['Core']['SlippiReplayDir'] = str(self.slippi_replays_path)
         config['Core']['SlippiReplayMonthFolders'] = "True"
         config['Display']['Fullscreen'] = "False"
-        #config['Display']['RenderWindowWidth'] = '1'
-        #config['Display']['RenderWindowHeight'] = '1'
-
+        config['Display']['RenderWindowWidth'] = '128'
+        config['Display']['RenderWindowHeight'] = '128'
 
         with open(str(self.config_path), 'w') as outfile:
             config.write(outfile)
@@ -319,8 +320,8 @@ class DolphinConfig:
 
         config_path = user_path / "Config"
 
-        if self.platform == "linux":
-            config_path.symlink_to(self.config_path.parents[0])
+        #if self.platform == "linux":
+            #config_path.symlink_to(self.config_path.parents[0])
 
         # Move GCPadNew.ini to this location
         shutil.copy(
