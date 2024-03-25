@@ -5,6 +5,7 @@ import numpy as np
 import sys
 import time
 from pathlib import Path
+import copy
 
 
 class MeleeEnv:
@@ -34,6 +35,7 @@ class MeleeEnv:
         self.ai_starts_game = ai_starts_game
 
         self.gamestate = None
+        self.previous_gamestate = None
 
 
     def start(self):
@@ -84,6 +86,8 @@ class MeleeEnv:
         self.gamestate = self.console.step()
  
     def setup(self, stage):
+        self.previous_gamestate = None
+
         for player in self.players:
             player.defeated = False
             
@@ -120,14 +124,92 @@ class MeleeEnv:
                 
             else:
                 melee.MenuHelper.choose_versus_mode(self.gamestate, self.players[self.menu_control_agent].controller)
+    
+    def get_stocks(self, gamestate):
+        stocks = [gamestate.players[i].stock for i in list(gamestate.players.keys())]
+        return np.array([stocks]).T  # players x 1
+  
+    def get_actions(self, gamestate):
+        actions = [gamestate.players[i].action.value for i in list(gamestate.players.keys())]
+        action_frames = [gamestate.players[i].action_frame for i in list(gamestate.players.keys())]
+        hitstun_frames_left = [gamestate.players[i].hitstun_frames_left for i in list(gamestate.players.keys())]
+        
+        return np.array([actions, action_frames, hitstun_frames_left]).T # players x 3
+
+    def get_positions(self, gamestate):
+        x_positions = [gamestate.players[i].position.x for i in list(gamestate.players.keys())]
+        y_positions = [gamestate.players[i].position.y for i in list(gamestate.players.keys())]
+
+        return np.array([x_positions, y_positions]).T  # players x 2
+    def get_damages(self, gamestate):
+        damages = [gamestate.players[i].percent for i in list(gamestate.players.keys())]
+        return np.array([damages]).T  # players x 1
+
+    def calculate_rewards(self, previous_gamestate, current_gamestate):
+
+        if not previous_gamestate:
+            return [0 for i in list(current_gamestate.players.keys())]
+
+        previous_stocks = self.get_stocks(previous_gamestate)
+        current_stocks = self.get_stocks(current_gamestate)
+
+        stock_differential = [k[0] for k in previous_stocks - current_stocks]
+        #if stock_differential[0] or stock_differential[1]:
+            #print('stock taken')
+            #print(stock_differential)
+
+        previous_damages = self.get_damages(previous_gamestate)
+        current_damages = self.get_damages(current_gamestate)
+
+        damages_differential = [max(0, k[0]) for k in current_damages - previous_damages]
+
+        #if damages_differential[0] or damages_differential[1]:
+            #print('damage taken')
+            #print(damages_differential)
+
+        # its actually lost hte game tho
+        won_the_game = [bool(current_stocks[i] == 0) for i in [0,1]] # todo: fix for 4 player game
+
+        #if won_the_game[0] or won_the_game[1]:
+            #print('game over')
+            #print(won_the_game)
+
+        stock_multiplier = 200
+        damage_multiplier = 1
+        win_multiplier = 0
+
+        p0_rewards = (stock_differential[1] - stock_differential[0]) * stock_multiplier\
+            + (damages_differential[1] - damages_differential[0]) * damage_multiplier\
+            + (won_the_game[1] - won_the_game[0]) * win_multiplier # win
+        
+        p1_rewards = -p0_rewards
+
+
+        rewards = [p0_rewards, p1_rewards]
+        
+        #if rewards[0] or rewards[1]:
+            #print(rewards)
+        
+        #if rewards[0] == 1:
+            #print(stock_differential)
+            #print(damages_differential)
+            #print(won_the_game)
+
+        return rewards
 
     def step(self):
         stocks = np.array([self.gamestate.players[i].stock for i in list(self.gamestate.players.keys())])
         done = not np.sum(stocks[np.argsort(stocks)][::-1][1:])
+        rewards = None
+        truncated = None
+        infos = None
 
-        if self.gamestate.menu_state in [melee.Menu.IN_GAME, melee.Menu.SUDDEN_DEATH]:
+        if self.gamestate.menu_state in [melee.Menu.IN_GAME, melee.Menu.SUDDEN_DEATH] and not done:
             self.gamestate = self.console.step()
-        return self.gamestate, done
+            rewards = self.calculate_rewards(self.previous_gamestate, self.gamestate)
+            self.previous_gamestate = self.gamestate
+
+        return self.gamestate, rewards, done, truncated, infos
 
 
     def close(self):

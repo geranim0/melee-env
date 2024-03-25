@@ -21,4 +21,6 @@ for episode in range(episodes):
     while not done:
         for i in range(len(players)):
             players[i].act(gamestate)
-        gamestate, done = env.step()
+        gamestate, reward, done, truncated, infos = env.step()
+        if reward and reward[0]:
+            print(reward[0])

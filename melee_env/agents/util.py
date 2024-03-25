@@ -10,6 +10,9 @@ class ObservationSpace:
         self.player_count = None
         self.current_frame = 0
         self.intial_process_complete = False
+        #self.previous_gamestate = None
+        #self.current_gamestate = None
+        self.total_reward = 0
 
     def set_player_keys(self, keys):
         self.player_keys = keys
@@ -31,9 +34,14 @@ class ObservationSpace:
 
         return np.array([x_positions, y_positions]).T  # players x 2
 
+    def get_damages(self, gamestate):
+        damages = [gamestate.players[i].percent for i in list(gamestate.players.keys())]
+        return np.array([damages]).T  # players x 1
+
     def __call__(self, gamestate):
         reward = 0
         info = None
+        #truncated = None
         self.current_gamestate = gamestate
         self.player_count = len(list(gamestate.players.keys()))
         
@@ -55,16 +63,18 @@ class ObservationSpace:
             for row in rows_to_insert:
                 observation = np.insert(observation, row, self.previous_observation[row], axis=0)            
 
-        self.done = not np.sum(observation[np.argsort(observation[:, -1])][::-1][1:, -1])
-
-        if self.current_frame > 85 and not self.done:
+        if self.current_frame > 85 and not self.done: #and self.previous_gamestate:
             # difficult to derive a reward function in a (possible) 4-player env
             # but you might define some reward function here
             # self.total_reward += reward
-            reward = 0
+            #reward = self.calculate_rewards(self.previous_gamestate, self.current_gamestate)[0]
+            self.total_reward += 0
+        
+        self.done = not np.sum(observation[np.argsort(observation[:, -1])][::-1][1:, -1])
         
         # previous observation will always have the correct number of players
         self.previous_observation = observation
+        #self.previous_gamestate = self.current_gamestate
         self.current_frame += 1
 
         if self.done:
