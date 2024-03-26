@@ -73,7 +73,7 @@ class DolphinConfig:
             print(f"Found melee-env installation in {self.slippi_path.parents[0]}")
 
 
-    def use_render_interface(self, interface="opengl"):
+    def use_render_interface(self, interface="vulkan"):
         """Edit config to use Vulkan instead of default OpenGL"""
         if interface not in ["vulkan", "opengl"]:
             raise ValueError("unsupported render interface, please select "

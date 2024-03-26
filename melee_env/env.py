@@ -48,7 +48,8 @@ class MeleeEnv:
             path=str(self.d.slippi_bin_path),
             dolphin_home_path=dolphin_home_path,
             blocking_input=self.blocking_input,
-            tmp_home_directory=True)
+            tmp_home_directory=True,
+            gfx_backend='Vulkan')
 
         # print(self.console.dolphin_home_path)  # add to logging later
         # Configure Dolphin for the correct controller setup, add controllers
@@ -196,6 +197,9 @@ class MeleeEnv:
             #print(won_the_game)
 
         return rewards
+    
+    def reset(self, stage):
+        return self.setup(stage)
 
     def step(self):
         stocks = np.array([self.gamestate.players[i].stock for i in list(self.gamestate.players.keys())])

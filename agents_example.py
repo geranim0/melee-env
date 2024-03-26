@@ -13,7 +13,7 @@ players = [Rest(), NOOP(enums.Character.FOX)]
 
 env = MeleeEnv(args.iso, players, fast_forward=True)
 
-episodes = 10; reward = 0
+episodes = 10000; reward = 0
 env.start()
 
 for episode in range(episodes):
