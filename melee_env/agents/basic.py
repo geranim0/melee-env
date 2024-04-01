@@ -7,8 +7,8 @@ import code
 class Agent(ABC):
     def __init__(self):
         self.agent_type = "AI"
-        self.controller = None
-        self.port = None  # this is also in controller, maybe redundant?
+        self.controller = None #set at env.py:63
+        #self.port = None  # this is also in controller, maybe redundant?
         self.action = 0
         self.press_start = False
         self.self_observation = None
@@ -48,6 +48,7 @@ class CPU(AgentChooseCharacter):
 class NOOP(AgentChooseCharacter):
     def __init__(self, character):
         super().__init__(character)
+        self.agent_type = "HardCoded"
 
     def act(self, gamestate):
         self.action = 0
@@ -57,6 +58,7 @@ class Random(AgentChooseCharacter):
     def __init__(self, character):
         super().__init__(character)
         self.action_space = ActionSpace()
+        self.agent_type = "HardCoded"
     
     @from_action_space
     def act(self, gamestate):
@@ -67,9 +69,10 @@ class Shine(Agent):
     def __init__(self):
         super().__init__()
         self.character = enums.Character.FOX
+        self.agent_type = "HardCoded"
     
     def act(self, gamestate):
-        state = gamestate.players[self.port].action
+        state = gamestate.players[self.controller.port].action
         frames = gamestate.players[self.port].action_frame
         hitstun = gamestate.players[self.port].hitstun_frames_left
         
@@ -94,6 +97,7 @@ class Rest(Agent):
     def __init__(self):
         super().__init__()
         self.character = enums.Character.JIGGLYPUFF
+        self.agent_type = "HardCoded"
 
         self.action_space = ActionSpace()
         self.observation_space = ObservationSpace()
@@ -107,7 +111,7 @@ class Rest(Agent):
         # In order to make Rest-bot work for any number of players, it needs to 
         #   select a target. A target is selected by identifying the closest 
         #   player who is not currently defeated/respawning.  
-        curr_position = observation[self.port-1, :2]
+        curr_position = observation[self.controller.port-1, :2]
         try:
             positions_centered = observation[:, :2] - curr_position
         except:
@@ -127,7 +131,7 @@ class Rest(Agent):
                 closest = closest_sort[i]
                 break
 
-        if closest == self.port-1:  # nothing to target
+        if closest == self.controller.port-1:  # nothing to target
             action = 0
 
         elif distances[closest] < 4:

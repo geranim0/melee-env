@@ -36,6 +36,7 @@ class MeleeEnv:
 
         self.gamestate = None
         self.previous_gamestate = None
+        self.env_is_started = False
 
 
     def start(self):
@@ -85,6 +86,7 @@ class MeleeEnv:
         [player.controller.connect() for player in self.players if player is not None]
 
         self.gamestate = self.console.step()
+        self.env_is_started = True
  
     def setup(self, stage):
         self.previous_gamestate = None
@@ -198,8 +200,12 @@ class MeleeEnv:
 
         return rewards
     
-    def reset(self, stage):
-        return self.setup(stage)
+    def reset(self):
+        if not self.env_is_started:
+            self.start()
+        
+        obs, done = self.setup(enums.Stage.BATTLEFIELD)
+        return obs, None # obs, info
 
     def step(self):
         stocks = np.array([self.gamestate.players[i].stock for i in list(self.gamestate.players.keys())])
