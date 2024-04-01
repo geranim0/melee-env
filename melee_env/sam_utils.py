@@ -21,7 +21,7 @@ def dreamer_to_logical_v1_inputs(dreamer_inputs):
     return
     
 
-def logical_v1_to_libmelee_inputs(logical_input: logical_inputs_v1):
+def logical_v1_to_libmelee_single_input(logical_input: logical_inputs_v1):
     if logical_input == logical_inputs_v1.joystick_left:
         def libmelee_input(controller: melee.Controller):
             controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 0, 0.5)
@@ -59,11 +59,11 @@ def logical_v1_to_libmelee_inputs(logical_input: logical_inputs_v1):
 
 
 #dumb version without diagonals
-def logical_v1_to_libmelee_inputs(logical_inputs: List[logical_inputs_v1]):
+def logical_v1_to_libmelee_inputs(logical_inputs):
     
     libmelee_inputs = []
 
     for logical_input in logical_inputs:
-        libmelee_inputs.append(logical_v1_to_libmelee_inputs(logical_input))
+        libmelee_inputs.append(logical_v1_to_libmelee_single_input(logical_input))
     
     return libmelee_inputs

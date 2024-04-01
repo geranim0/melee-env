@@ -22,6 +22,8 @@ class AgentChooseCharacter(Agent):
     def __init__(self, character):
         super().__init__()
         self.character = character
+    def act(self, gamestate):
+        pass
         
 
 class Human(Agent):

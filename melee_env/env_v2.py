@@ -9,7 +9,8 @@ import copy
 from melee_env import sam_utils
 import random
 from melee_env.agents.basic import *
-
+from gymnasium.spaces import MultiBinary
+import gymnasium as gym
 
 class MeleeEnv_v2:
     def __init__(self, 
@@ -23,7 +24,8 @@ class MeleeEnv_v2:
         ai_starts_game=True,
         shuffle_controllers_after_each_game=True,
         randomize_stage = True,
-        randomize_character = True):
+        randomize_character = True,
+        num_players = 2):
 
         self.d = DolphinConfig()
         self.d.set_ff(fast_forward)
@@ -31,9 +33,9 @@ class MeleeEnv_v2:
         self.iso_path = Path(iso_path).resolve()
         self.players = players
 
-        self.step = self._gen_step(agent_actions_to_logical_actions_fn)
-        self._logical_actions_to_controller_actions_fn = logical_actions_to_controller_actions_fn
-        self._gamestate_to_obs_space_fn = gamestate_to_obs_space_fn
+        self.step = self._gen_step(_agent_actions_to_logical_actions_fn_v1)
+        self._logical_actions_to_controller_actions_fn = sam_utils.logical_v1_to_libmelee_inputs
+        self._gamestate_to_obs_space_fn = self._gamestate_to_obs_space_fn_v1
 
         # inform other players of other players
         # for player in self.players:
@@ -50,6 +52,7 @@ class MeleeEnv_v2:
         self._shuffle_controllers_after_each_game = shuffle_controllers_after_each_game
         self._randomize_stage = randomize_stage
         self._randomize_character = randomize_character
+        self._num_players = num_players
 
         self.gamestate = None
         self.previous_gamestate = None
@@ -61,6 +64,183 @@ class MeleeEnv_v2:
         self._dead_ports = {}
         self.removethis = 0
 
+        self.action_space = self._get_action_space()
+        self.observation_space = self._get_obervation_space()
+
+
+    def _get_action_space(self):
+        # left, right, up, down = 4
+        # A, B, full R, = 3
+        # => 7
+        num_actions = 7
+
+        if self._num_players == 2:
+            return MultiBinary(num_actions)
+        elif self._num_players == 4:
+            return MultiBinary(2 * num_actions)
+        else:
+            raise NotImplementedError(self.__class__.__name__ + ': num_players must be 2 or 4')
+
+    def _get_obervation_space(self):
+        # action (enum.Action): one hot (385 bits)
+        # action_frame (int):
+        # character (enum.Character): 
+        # facing (bool): 
+        # hitstun_frames_left (int): 
+        # invulnerability_left (int): 
+        # jumps_left (int): 
+        # off_stage (bool):
+        # on_ground (bool): 
+        # percent (int):
+        # position (float, float): 
+        # shield_strength (float max 60): 
+        # speed_air_x_self (float): 
+        # speed_ground_x_self(float): 
+        # speed_x_attack (float): 
+        # speed_y_attack (float):
+        # speed_y_self (float): 
+        # stock (int): 
+        # ----- for later ---------
+        # stage, projectiles,  
+
+        # one hot encoded obs
+        action_len = len(list(melee.enums.Action)) # 385
+        character_len = len(list(melee.enums.Character))
+        facing_len = 1
+        offstage_len = 1
+        on_ground_len = 1
+
+        # todo: try multibinary and integer type and see diff. is this wasteful?
+        # action, character, facing, off_stage, on_ground
+        one_hot_obs = gym.spaces.Box(low=0, high=1, shape=[action_len, character_len, facing_len, offstage_len, on_ground_len], dtype=np.float32)
+
+        # int obs
+        # action_frame, hitstun_frames_left, invulnerability_left, jumps_left, percent, stock
+        int_obs = gym.spaces.Box(
+            low=0,
+            high=999,
+            shape=(6,),
+            dtype=np.float32)
+
+        #float obs
+        # position_x, position_y, shield strength, speed_air_x_self, speed_ground_x_self, speed_x_attack, speed_y_attack, speed_y_self
+        float_obs = gym.spaces.Box(
+            low=-np.Infinity,
+            high=np.Infinity,
+            shape=(8,),
+            dtype=np.float32)
+        
+
+        if self._num_players == 2:
+            all_obs_space = gym.spaces.Dict({
+                'one_hot_p1': one_hot_obs,
+                'int_obs_p1': int_obs,
+                'float_obs_p1': float_obs,
+                
+                'one_hot_p2': one_hot_obs,
+                'int_obs_p2': int_obs,
+                'float_obs_p2': float_obs,
+            })
+        elif self._num_players == 4:
+            all_obs_space = gym.spaces.Dict({
+                'one_hot_p1': one_hot_obs,
+                'int_obs_p1': int_obs,
+                'float_obs_p1': float_obs,
+                
+                'one_hot_p2': one_hot_obs,
+                'int_obs_p2': int_obs,
+                'float_obs_p2': float_obs,
+                
+                'one_hot_p3': one_hot_obs,
+                'int_obs_p3': int_obs,
+                'float_obs_p3': float_obs,
+                
+                'one_hot_p4': one_hot_obs,
+                'int_obs_p4': int_obs,
+                'float_obs_p4': float_obs,
+            })
+        else:
+            raise NotImplementedError(self.__class__.__name__ + ': num_players must be 2 or 4')
+
+        return all_obs_space
+    
+
+    def _gamestate_to_obs_space_fn_v1(self, gamestate):        
+        # one hot
+        action = {port: gamestate.players[port].action for port in gamestate.players.keys()}
+        character = {port: gamestate.players[port].character for port in gamestate.players.keys()}
+        facing = {port: gamestate.players[port].facing for port in gamestate.players.keys()}
+        off_stage = {port: gamestate.players[port].off_stage for port in gamestate.players.keys()}
+        on_ground = {port: gamestate.players[port].on_ground for port in gamestate.players.keys()}
+
+        # int obs
+        action_frame = {port: gamestate.players[port].action_frame for port in gamestate.players.keys()}
+        hitstun_frames_left = {port: gamestate.players[port].hitstun_frames_left for port in gamestate.players.keys()}
+        invulnerability_left = {port: gamestate.players[port].invulnerability_left for port in gamestate.players.keys()}
+        jumps_left = {port: gamestate.players[port].jumps_left for port in gamestate.players.keys()}
+        percent = {port: gamestate.players[port].percent for port in gamestate.players.keys()}
+        stock = {port: gamestate.players[port].stock for port in gamestate.players.keys()}
+
+        # float obs
+        position = {port: gamestate.players[port].position for port in gamestate.players.keys()}
+        shield_strength = {port: gamestate.players[port].shield_strength for port in gamestate.players.keys()}
+        speed_air_x_self = {port: gamestate.players[port].speed_air_x_self for port in gamestate.players.keys()}
+        speed_ground_x_self = {port: gamestate.players[port].speed_ground_x_self for port in gamestate.players.keys()}
+        speed_x_attack = {port: gamestate.players[port].speed_x_attack for port in gamestate.players.keys()}
+        speed_y_attack = {port: gamestate.players[port].speed_y_attack for port in gamestate.players.keys()}
+        speed_y_self = {port: gamestate.players[port].speed_y_self for port in gamestate.players.keys()}
+
+        print('action:' + str(speed_ground_x_self))
+
+        current_player_index = 1
+        obs = {}
+        for port in np.concatenate((self._friendly_ports, self._enemy_ports), axis=None):
+            
+            # one hot
+            one_hot_dict_idx = "one_hot_p" + str(current_player_index)
+
+            action_one_hot = np.zeros(len(list(melee.enums.Action)))
+            action_one_hot[action[port].value] = 1
+
+            character_one_hot = np.zeros(len(list(melee.enums.Character)))
+            character_one_hot[character[port].value] = 1
+
+            all_one_hots = np.concatenate((action_one_hot, character_one_hot, facing[port], off_stage[port], on_ground[port]), axis=None).astype(np.float32)
+            obs[one_hot_dict_idx] = all_one_hots
+
+            # int
+            int_dict_idx = "int_obs_p" + str(current_player_index)
+            all_ints = np.concatenate(
+                (
+                    action_frame[port],
+                    hitstun_frames_left[port],
+                    invulnerability_left[port],
+                    jumps_left[port],
+                    percent[port],
+                    stock[port]
+                ), axis=None).astype(np.float32)
+            obs[int_dict_idx] = all_ints
+
+            # floats
+            float_dict_idx = "float_obs_p" + str(current_player_index)
+            all_floats = np.concatenate(
+                (
+                    position[port].x,
+                    position[port].y,
+                    shield_strength[port],
+                    speed_air_x_self[port],
+                    speed_ground_x_self[port],
+                    speed_x_attack[port],
+                    speed_y_attack[port],
+                    speed_y_self[port]
+                ), axis=None).astype(np.float32)
+            obs[float_dict_idx] = all_floats
+
+            current_player_index += 1
+        
+        return obs
+
+        
 
     def start(self):
         if sys.platform == "linux":
@@ -320,8 +500,9 @@ class MeleeEnv_v2:
     # returns rewards only for the agent being trained
     def calculate_rewards_v2(self, friendly_ports, enemy_ports, previous_gamestate, current_gamestate):
         # todo: take as arg
-        stock_multiplier = 200
+        stock_multiplier = 1000
         damage_multiplier = 1
+        time_tick_neg_reward = -1
         win_multiplier = 0
 
         if not previous_gamestate:
@@ -364,7 +545,7 @@ class MeleeEnv_v2:
             - sum(damages_differential[port] for port in friendly_ports)) \
             * damage_multiplier
 
-        rewards = stock_rewards + damage_rewards
+        rewards = time_tick_neg_reward + stock_rewards + damage_rewards
         return rewards
     
     def reset(self):
@@ -421,5 +602,41 @@ def get_agent_controller(agent):
     return agent.controller
 
 def execute_actions(controller, actions):
+    controller.release_all()
     for action in actions:
         action(controller)
+    controller.flush()
+
+def _agent_actions_to_logical_actions_fn_v1(agent_actions):
+        left = agent_actions[0]
+        right = agent_actions[1]
+        up = agent_actions[2]
+        down = agent_actions[3]
+        buttonA = agent_actions[4]
+        buttonB = agent_actions[5]
+        full_shield = agent_actions[6]
+
+        logical_actions = []
+        if left and not right:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_left)
+        
+        if right and not left:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_right)
+
+        if up and not down:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_up)
+        
+        if down and not up:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_down)
+
+        if buttonA:
+            logical_actions.append(sam_utils.logical_inputs_v1.button_A)
+        
+        if buttonB:
+            logical_actions.append(sam_utils.logical_inputs_v1.button_B)
+        
+        if full_shield:
+            logical_actions.append(sam_utils.logical_inputs_v1.full_shield)
+        
+        return logical_actions
+
