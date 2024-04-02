@@ -8,6 +8,7 @@ class Agent(ABC):
     def __init__(self):
         self.agent_type = "AI"
         self.controller = None #set at env.py:63
+        self.character = None
         #self.port = None  # this is also in controller, maybe redundant?
         self.action = 0
         self.press_start = False
@@ -15,6 +16,13 @@ class Agent(ABC):
         self.current_frame = 0
 
     @abstractmethod
+    def act(self):
+        pass
+
+class sam_ai(Agent):
+    def __init__(self):
+        super().__init__()
+
     def act(self):
         pass
 

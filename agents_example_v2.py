@@ -20,7 +20,9 @@ args = parser.parse_args()
 
 #players = [Rest(), NOOP(enums.Character.FOX)]
 #players = [Rest(), AgentChooseCharacter(enums.Character.MARTH)]
-players = [NOOP(enums.Character.NESS), NOOP(enums.Character.FOX)]
+#players = [Rest(), sam_ai()] # works doenst get stuck in menu
+players = [sam_ai(), Rest()] # gets stuck in menu
+#players = [Rest(), NOOP(enums.Character.FOX)]
 
 env = MeleeEnv_v2(args.iso, players, agent_actions_to_logical_actions_fn, logical_actions_to_controller_actions_fn, gamestate_to_obs_space_fn, fast_forward=True, shuffle_controllers_after_each_game=False, num_players=2)
 
@@ -29,6 +31,7 @@ env.start()
 
 for episode in range(episodes):
     #gamestate, done = env.setup(enums.Stage.BATTLEFIELD)
+    print('done! resetting')
     obs, done = env.reset()
     while not done:
         simulated_action = env.action_space.sample() 

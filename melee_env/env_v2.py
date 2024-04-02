@@ -190,8 +190,6 @@ class MeleeEnv_v2:
         speed_y_attack = {port: gamestate.players[port].speed_y_attack for port in gamestate.players.keys()}
         speed_y_self = {port: gamestate.players[port].speed_y_self for port in gamestate.players.keys()}
 
-        print('action:' + str(speed_ground_x_self))
-
         current_player_index = 1
         obs = {}
         for port in np.concatenate((self._friendly_ports, self._enemy_ports), axis=None):
@@ -200,10 +198,16 @@ class MeleeEnv_v2:
             one_hot_dict_idx = "one_hot_p" + str(current_player_index)
 
             action_one_hot = np.zeros(len(list(melee.enums.Action)))
-            action_one_hot[action[port].value] = 1
+            action_one_hot[action[port].value % len(list(melee.enums.Action))] = 1
+
+            if action[port].value >= len(list(melee.enums.Action)):
+                print('Error: illegal action: ' + str(action[port].value))
 
             character_one_hot = np.zeros(len(list(melee.enums.Character)))
-            character_one_hot[character[port].value] = 1
+            character_one_hot[character[port].value % len(list(melee.enums.Character))] = 1
+
+            if character[port].value >= len(list(melee.enums.Character)):
+                print('Error: illegal character: ' + str(action[port].value))
 
             all_one_hots = np.concatenate((action_one_hot, character_one_hot, facing[port], off_stage[port], on_ground[port]), axis=None).astype(np.float32)
             obs[one_hot_dict_idx] = all_one_hots
@@ -269,7 +273,8 @@ class MeleeEnv_v2:
             elif curr_player.agent_type in ["AI", "CPU", "HardCoded"]:
                 self.d.set_controller_type(i+1, enums.ControllerType.STANDARD)
                 curr_player.controller = melee.Controller(console=self.console, port=i+1)
-                self.menu_control_agent = curr_player
+                if curr_player.agent_type == "AI":
+                    self.menu_control_agent = curr_player
                 #curr_player.port = i+1 
             else:  # no player
                 self.d.set_controller_type(i+1, enums.ControllerType.UNPLUGGED)
@@ -291,7 +296,7 @@ class MeleeEnv_v2:
         self.gamestate = self.console.step()
         self.env_is_started = True
  
-    # so the agent learns to play each port
+    # so the agent learns to play each port. todo: do with ports, no controller
     def _shuffle_controllers(self):
         remaining_controllers = [player.controller for player in self.players]
 
@@ -303,12 +308,12 @@ class MeleeEnv_v2:
     def _choose_stage(self):
         if self._randomize_stage:
             stage =  random.choice([
-                #melee.enums.Stage.FINAL_DESTINATION,
-                #melee.enums.Stage.BATTLEFIELD,
-                melee.enums.Stage.POKEMON_STADIUM,])
-                #melee.enums.Stage.DREAMLAND,
-                #melee.enums.Stage.FOUNTAIN_OF_DREAMS,
-                #melee.enums.Stage.YOSHIS_STORY])
+                melee.enums.Stage.FINAL_DESTINATION,
+                melee.enums.Stage.BATTLEFIELD,
+                melee.enums.Stage.POKEMON_STADIUM,
+                melee.enums.Stage.DREAMLAND,
+                melee.enums.Stage.FOUNTAIN_OF_DREAMS,
+                melee.enums.Stage.YOSHIS_STORY])
         else:
             stage = melee.enums.Stage.BATTLEFIELD
         print('chosen stage = ' + str(stage))
@@ -316,7 +321,7 @@ class MeleeEnv_v2:
 
     def _randomize_characters(self):
         for player in self.players:
-            if type(player) is NOOP:
+            if type(player) is sam_ai:
                 player.character = random.choice([
                     #melee.enums.Character.BOWSER,
                     #melee.enums.Character.CPTFALCON,
@@ -327,22 +332,22 @@ class MeleeEnv_v2:
                     #melee.enums.Character.GAMEANDWATCH,
                     #melee.enums.Character.GANONDORF,
                     melee.enums.Character.JIGGLYPUFF,
-                    #melee.enums.Character.KIRBY,
+                    melee.enums.Character.KIRBY,
                     #melee.enums.Character.LINK,
                     #melee.enums.Character.LUIGI,
                     #melee.enums.Character.MARIO,
                     #melee.enums.Character.MARTH,
                     #melee.enums.Character.MEWTWO,
-                    #melee.enums.Character.NESS,
+                    melee.enums.Character.NESS,
                     #melee.enums.Character.PEACH,
                     #melee.enums.Character.PICHU,
-                    melee.enums.Character.PIKACHU,])
+                    #melee.enums.Character.PIKACHU,
                     #melee.enums.Character.POPO,
-                    #melee.enums.Character.ROY,
+                    melee.enums.Character.ROY,
                     #melee.enums.Character.SAMUS,
-                    #melee.enums.Character.SHEIK, it makes it bug
+                    ##melee.enums.Character.SHEIK, it makes it bug
                     #melee.enums.Character.YLINK,
-                    #melee.enums.Character.YOSHI,
+                    melee.enums.Character.YOSHI,])
                     #melee.enums.Character.ZELDA])
                 print('chosen char=' + str(player.character))
 
@@ -356,6 +361,30 @@ class MeleeEnv_v2:
             else:
                 self._enemy_ports.append(player.controller.port)
 
+    def select_character(self):
+        
+        all_players_press_nothing(self.players)
+
+        for player in self.players:
+            while not melee.MenuHelper.choose_character(
+                            character=player.character,
+                            gamestate=self.gamestate,
+                            controller=player.controller,
+                            costume=0, # todo: random this
+                            swag=False,
+                            start=False,
+                            cpu_level=0 if player.agent_type == "CPU" else 0):
+                print('player port: ' + str(player.controller.port) + ' just chose ' + str(player.character))
+                self.gamestate = self.console.step()
+                
+        
+        all_players_press_nothing(self.players)
+        self.players[0].controller.release_all()
+        self.gamestate = self.console.step()
+        self.players[0].controller.press_button(melee.enums.Button.BUTTON_START)
+        self.players[0].controller.flush()
+        self.gamestate = self.console.step()
+        self.players[0].controller.release_all()
         
 
     def setup(self):
@@ -378,32 +407,36 @@ class MeleeEnv_v2:
             self._dead_ports[i] = False
             
         while True:
+            #all_players_press_nothing(self.players)
             self.gamestate = self.console.step()
 
             if self.gamestate.menu_state is melee.Menu.CHARACTER_SELECT:
-                for i in range(len(self.players)):
-                    if self.players[i].agent_type in ["AI", "HardCoded"] :
-                        melee.MenuHelper.choose_character(
-                            character=self.players[i].character,
-                            gamestate=self.gamestate,
-                            controller=self.players[i].controller,
-                            costume=i,
-                            swag=False,
-                            start= (i==len(self.players) - 1))
-                            #start=self.players[i].press_start)
-                    if self.players[i].agent_type == "CPU":
-                        melee.MenuHelper.choose_character(
-                            character=self.players[i].character,
-                            gamestate=self.gamestate,
-                            controller=self.players[i].controller,
-                            costume=i,
-                            swag=False,
-                            cpu_level=self.players[i].lvl,
-                            start= (i==len(self.players) - 1))
-                            #start=self.players[i].press_start)  
+                self.select_character()
+                #for player in self.players:
+                #    if player.agent_type in ["AI", "HardCoded"] :
+                #        melee.MenuHelper.choose_character(
+                #            character=player.character,
+                #            gamestate=self.gamestate,
+                #            controller=player.controller,
+                #            costume=i,
+                #            swag=False,
+                #            start=False)
+                #            #start=self.players[i].press_start)
+                #    if player.agent_type == "CPU":
+                #        melee.MenuHelper.choose_character(
+                #            character=player.character,
+                #            gamestate=self.gamestate,
+                #            controller=player.controller,
+                #            costume=i,
+                #            swag=False,
+                #            cpu_level=player.lvl,
+                #            start= False)
+                #            #start=self.players[i].press_start)
+                #melee.MenuHelper.menu_helper_simple(self.gamestate, )
 
             elif self.gamestate.menu_state is melee.Menu.STAGE_SELECT:
-                print('choosin stage with controller port: ' + str(self.menu_control_agent.controller.port))
+                all_players_press_nothing(self.players)
+                #print('choosin stage with controller port: ' + str(self.menu_control_agent.controller.port))
                 melee.MenuHelper.choose_stage(
                     stage=chosen_stage,
                     gamestate=self.gamestate,
@@ -557,8 +590,19 @@ class MeleeEnv_v2:
 
     # todo: fix for 4 players and make it cleaner
     def _is_done(self):
-        stocks = np.array([self.gamestate.players[i].stock for i in list(self.gamestate.players.keys())])
-        return not np.sum(stocks[np.argsort(stocks)][::-1][1:])
+        stocks = self.get_stocks_v2(self.gamestate)
+
+        friendly_stocks = [stocks[port] for port in self._friendly_ports]
+        if all(stocks == 0 for stocks in friendly_stocks):
+            print('all friendly stocks == 0, resetting')
+            return True
+        
+        enemy_stocks = [stocks[port] for port in self._enemy_ports]
+        if all(stocks == 0 for stocks in enemy_stocks):
+            print('all enemy stocks == 0, resetting')
+            return True
+
+        return False
     
     def _gen_step(self, agent_to_logical_actions_fn):
         def step(agent_actions):
@@ -586,6 +630,9 @@ class MeleeEnv_v2:
             #done = self._is_done()
             rewards = self.calculate_rewards_v2(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
             self.previous_gamestate = self.gamestate
+
+        if done:
+            all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
 
         return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
 
@@ -640,3 +687,8 @@ def _agent_actions_to_logical_actions_fn_v1(agent_actions):
         
         return logical_actions
 
+
+def all_players_press_nothing(players):
+    for player in players:
+        player.controller.release_all()
+        player.controller.flush()
