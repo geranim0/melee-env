@@ -21,10 +21,12 @@ args = parser.parse_args()
 #players = [Rest(), NOOP(enums.Character.FOX)]
 #players = [Rest(), AgentChooseCharacter(enums.Character.MARTH)]
 #players = [Rest(), sam_ai()] # works doenst get stuck in menu
-players = [sam_ai(), Rest()] # gets stuck in menu
+#players = [sam_ai(), Rest()] # gets stuck in menu
 #players = [Rest(), NOOP(enums.Character.FOX)]
+#players = [NOOP(enums.Character.FOX), NOOP(enums.Character.FOX)]
+players = [sam_ai(), NOOP(enums.Character.FOX)]
 
-env = MeleeEnv_v2(args.iso, players, agent_actions_to_logical_actions_fn, logical_actions_to_controller_actions_fn, gamestate_to_obs_space_fn, fast_forward=True, shuffle_controllers_after_each_game=False, num_players=2)
+env = MeleeEnv_v2(args.iso, players, agent_actions_to_logical_actions_fn, logical_actions_to_controller_actions_fn, gamestate_to_obs_space_fn, fast_forward=True, shuffle_controllers_after_each_game=True, num_players=2)
 
 episodes = 10000; reward = 0
 env.start()
@@ -36,6 +38,6 @@ for episode in range(episodes):
     while not done:
         simulated_action = env.action_space.sample() 
         obs, reward, done, truncated, infos = env.step(simulated_action)
-        if reward and reward > 0:
+        if reward and reward < -1:
             print(reward)
 

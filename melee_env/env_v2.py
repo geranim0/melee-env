@@ -25,7 +25,8 @@ class MeleeEnv_v2:
         shuffle_controllers_after_each_game=True,
         randomize_stage = True,
         randomize_character = True,
-        num_players = 2):
+        num_players = 2,
+        max_match_steps = 60*60*8):
 
         self.d = DolphinConfig()
         self.d.set_ff(fast_forward)
@@ -66,6 +67,9 @@ class MeleeEnv_v2:
 
         self.action_space = self._get_action_space()
         self.observation_space = self._get_obervation_space()
+
+        self._current_match_steps = 0
+        self._max_match_steps = max_match_steps
 
 
     def _get_action_space(self):
@@ -273,8 +277,8 @@ class MeleeEnv_v2:
             elif curr_player.agent_type in ["AI", "CPU", "HardCoded"]:
                 self.d.set_controller_type(i+1, enums.ControllerType.STANDARD)
                 curr_player.controller = melee.Controller(console=self.console, port=i+1)
-                if curr_player.agent_type == "AI":
-                    self.menu_control_agent = curr_player
+                #if curr_player.agent_type == "AI":
+                self.menu_control_agent = curr_player
                 #curr_player.port = i+1 
             else:  # no player
                 self.d.set_controller_type(i+1, enums.ControllerType.UNPLUGGED)
@@ -323,32 +327,32 @@ class MeleeEnv_v2:
         for player in self.players:
             if type(player) is sam_ai:
                 player.character = random.choice([
-                    #melee.enums.Character.BOWSER,
-                    #melee.enums.Character.CPTFALCON,
-                    #melee.enums.Character.DK,
-                    #melee.enums.Character.DOC,
-                    #melee.enums.Character.FALCO,
-                    #melee.enums.Character.FOX,
-                    #melee.enums.Character.GAMEANDWATCH,
-                    #melee.enums.Character.GANONDORF,
+                    melee.enums.Character.BOWSER,
+                    melee.enums.Character.CPTFALCON,
+                    melee.enums.Character.DK,
+                    melee.enums.Character.DOC,
+                    melee.enums.Character.FALCO,
+                    melee.enums.Character.FOX,
+                    melee.enums.Character.GAMEANDWATCH,
+                    melee.enums.Character.GANONDORF,
                     melee.enums.Character.JIGGLYPUFF,
                     melee.enums.Character.KIRBY,
-                    #melee.enums.Character.LINK,
-                    #melee.enums.Character.LUIGI,
-                    #melee.enums.Character.MARIO,
-                    #melee.enums.Character.MARTH,
-                    #melee.enums.Character.MEWTWO,
+                    melee.enums.Character.LINK,
+                    melee.enums.Character.LUIGI,
+                    melee.enums.Character.MARIO,
+                    melee.enums.Character.MARTH,
+                    melee.enums.Character.MEWTWO,
                     melee.enums.Character.NESS,
-                    #melee.enums.Character.PEACH,
-                    #melee.enums.Character.PICHU,
-                    #melee.enums.Character.PIKACHU,
-                    #melee.enums.Character.POPO,
+                    melee.enums.Character.PEACH,
+                    melee.enums.Character.PICHU,
+                    melee.enums.Character.PIKACHU,
+                    melee.enums.Character.POPO,
                     melee.enums.Character.ROY,
-                    #melee.enums.Character.SAMUS,
-                    ##melee.enums.Character.SHEIK, it makes it bug
-                    #melee.enums.Character.YLINK,
-                    melee.enums.Character.YOSHI,])
-                    #melee.enums.Character.ZELDA])
+                    melee.enums.Character.SAMUS,
+                    #melee.enums.Character.SHEIK, it makes it bug
+                    melee.enums.Character.YLINK,
+                    melee.enums.Character.YOSHI,
+                    melee.enums.Character.ZELDA])
                 print('chosen char=' + str(player.character))
 
     def _populate_friendly_enemy_ports(self):
@@ -389,6 +393,7 @@ class MeleeEnv_v2:
 
     def setup(self):
         self.previous_gamestate = None
+        self._current_match_steps = 0
 
         for player in self.players:
             player.defeated = False
@@ -544,7 +549,7 @@ class MeleeEnv_v2:
         previous_stocks = self.get_stocks_v2(previous_gamestate)
         current_stocks = self.get_stocks_v2(current_gamestate)
 
-        stock_differential = {port: current_stocks[port] - previous_stocks[port] for port in current_stocks}
+        stock_differential = {port: current_stocks[port] - previous_stocks[port] for port in previous_stocks}
 
         #if done and (stock_differential[port] == 0 for port in stock_differential):
             #return 0 
@@ -556,7 +561,7 @@ class MeleeEnv_v2:
         current_damages = self.get_damages_v2(current_gamestate)
 
         damages_differential = {}
-        for port in current_damages:
+        for port in previous_damages:
             damages_differential[port] = current_damages[port] - previous_damages[port]
             
             if damages_differential[port] < 0 and self._dead_ports[port] == True:
@@ -584,6 +589,16 @@ class MeleeEnv_v2:
     def reset(self):
         if not self.env_is_started:
             self.start()
+
+        while self.gamestate.menu_state == melee.Menu.IN_GAME:
+            print('reset, trying to jump offstage')
+            for player in self.players:
+                player.controller.release_all()
+                player.controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 1, 0.5)
+                player.controller.flush()
+            self.gamestate = self.console.step()
+                
+        all_players_press_nothing(self.players)
         
         obs, done = self.setup()
         return self._gamestate_to_obs_space_fn(obs), None # obs, info
@@ -601,6 +616,9 @@ class MeleeEnv_v2:
         if all(stocks == 0 for stocks in enemy_stocks):
             print('all enemy stocks == 0, resetting')
             return True
+        
+        #if self.gamestate.menu_state == melee.Menu.CHARACTER_SELECT:
+        #    return True
 
         return False
     
@@ -616,20 +634,32 @@ class MeleeEnv_v2:
         truncated = None
         infos = None
 
-        if self.gamestate.menu_state in [melee.Menu.IN_GAME, melee.Menu.SUDDEN_DEATH] and not done:
+        #if self.gamestate.menu_state in [melee.Menu.IN_GAME, melee.Menu.SUDDEN_DEATH] and not done:
+        if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
             
-            for player in self.players:
-                if not player.agent_type == "AI":
-                    player.act(self.gamestate)
-                else:
-                    controller_actions = self._logical_actions_to_controller_actions_fn(logical_actions)
-                    this_agent_controller = get_agent_controller(player)
-                    execute_actions(this_agent_controller, controller_actions)
+            if self._current_match_steps < self._max_match_steps:
+                for player in self.players:
+                    if not player.agent_type == "AI":
+                        player.act(self.gamestate)
+                    else:
+                        controller_actions = self._logical_actions_to_controller_actions_fn(logical_actions)
+                        this_agent_controller = get_agent_controller(player)
+                        execute_actions(this_agent_controller, controller_actions)
+            
+            else:
+                all_players_press_nothing(self.players)
+                return self._gamestate_to_obs_space_fn(self.gamestate), 0, True, True, infos
+
 
             self.gamestate = self.console.step()
-            #done = self._is_done()
+            self._current_match_steps += 1
+
+            done = self._is_done()
+
             rewards = self.calculate_rewards_v2(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
-            self.previous_gamestate = self.gamestate
+        
+        self.previous_gamestate = self.gamestate
+        
 
         if done:
             all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
@@ -689,6 +719,7 @@ def _agent_actions_to_logical_actions_fn_v1(agent_actions):
 
 
 def all_players_press_nothing(players):
+    print('all player press nothing')
     for player in players:
         player.controller.release_all()
         player.controller.flush()
