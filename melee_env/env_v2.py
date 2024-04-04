@@ -71,6 +71,7 @@ class MeleeEnv_v2(gym.Env):
         self._current_match_steps = 0
         self._max_match_steps = max_match_steps
         self._action_repeat = action_repeat
+        self.console = None
 
 
     def _get_action_space(self):
