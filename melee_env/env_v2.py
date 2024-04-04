@@ -12,13 +12,12 @@ from melee_env.agents.basic import *
 from gymnasium.spaces import MultiBinary
 import gymnasium as gym
 
-class MeleeEnv_v2:
+class MeleeEnv_v2(gym.Env):
+    #metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
+
     def __init__(self, 
         iso_path,
         players,
-        agent_actions_to_logical_actions_fn,
-        logical_actions_to_controller_actions_fn,
-        gamestate_to_obs_space_fn,
         fast_forward=False, 
         blocking_input=True,
         ai_starts_game=True,
@@ -26,7 +25,8 @@ class MeleeEnv_v2:
         randomize_stage = True,
         randomize_character = True,
         num_players = 2,
-        max_match_steps = 60*60*8):
+        max_match_steps = 60*60*8,
+        action_repeat = 6):
 
         self.d = DolphinConfig()
         self.d.set_ff(fast_forward)
@@ -70,6 +70,7 @@ class MeleeEnv_v2:
 
         self._current_match_steps = 0
         self._max_match_steps = max_match_steps
+        self._action_repeat = action_repeat
 
 
     def _get_action_space(self):
@@ -336,7 +337,7 @@ class MeleeEnv_v2:
                     melee.enums.Character.GAMEANDWATCH,
                     melee.enums.Character.GANONDORF,
                     melee.enums.Character.JIGGLYPUFF,
-                    melee.enums.Character.KIRBY,
+                    #melee.enums.Character.KIRBY, has illegal actions 65535 and 396
                     melee.enums.Character.LINK,
                     melee.enums.Character.LUIGI,
                     melee.enums.Character.MARIO,
@@ -586,7 +587,9 @@ class MeleeEnv_v2:
         rewards = time_tick_neg_reward + stock_rewards + damage_rewards
         return rewards
     
-    def reset(self):
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
+
         if not self.env_is_started:
             self.start()
 
@@ -601,7 +604,10 @@ class MeleeEnv_v2:
         all_players_press_nothing(self.players)
         
         obs, done = self.setup()
-        return self._gamestate_to_obs_space_fn(obs), None # obs, info
+        return self._gamestate_to_obs_space_fn(obs), self._get_info() # obs, info
+
+    def _get_info(self):
+        return None
 
     # todo: fix for 4 players and make it cleaner
     def _is_done(self):
@@ -628,13 +634,13 @@ class MeleeEnv_v2:
             return self.step_logical(logical_actions)
         return step
 
-    def step_logical(self, logical_actions): # currently only supports 1v1. future: list of list for 2v2?
+    def step_logical_old(self, logical_actions): # currently only supports 1v1. future: list of list for 2v2?
         done = self._is_done()
         rewards = None
         truncated = None
         infos = None
 
-        #if self.gamestate.menu_state in [melee.Menu.IN_GAME, melee.Menu.SUDDEN_DEATH] and not done:
+        
         if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
             
             if self._current_match_steps < self._max_match_steps:
@@ -663,6 +669,44 @@ class MeleeEnv_v2:
 
         if done:
             all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
+
+        return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
+    
+    def step_logical(self, logical_actions): # currently only supports 1v1. future: list of list for 2v2?
+        done = self._is_done()
+        rewards = 0
+        truncated = None
+        infos = None
+
+        for i in range(0, self._action_repeat):
+            if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
+                
+                if self._current_match_steps < self._max_match_steps:
+                    for player in self.players:
+                        if not player.agent_type == "AI":
+                            player.act(self.gamestate)
+                        else:
+                            controller_actions = self._logical_actions_to_controller_actions_fn(logical_actions, i)
+                            this_agent_controller = get_agent_controller(player)
+                            execute_actions(this_agent_controller, controller_actions)
+                
+                else:
+                    all_players_press_nothing(self.players)
+                    return self._gamestate_to_obs_space_fn(self.gamestate), 0, True, True, infos
+
+
+                self.gamestate = self.console.step()
+                self._current_match_steps += 1
+
+                done = self._is_done()
+
+                rewards += self.calculate_rewards_v2(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
+        
+                self.previous_gamestate = self.gamestate
+
+                if done:
+                    all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
+                    break
 
         return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
 
@@ -694,16 +738,29 @@ def _agent_actions_to_logical_actions_fn_v1(agent_actions):
         full_shield = agent_actions[6]
 
         logical_actions = []
-        if left and not right:
+
+        if (left and up) and not (right or down):
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_left_up)
+        
+        elif (up and right) and not (down or left):
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_up_right)
+
+        elif (right and down) and not (left or up):
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_right_down)
+
+        elif (down and left) and not (up or right):
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_down_left)
+
+        elif left and not right:
             logical_actions.append(sam_utils.logical_inputs_v1.joystick_left)
         
-        if right and not left:
+        elif right and not left:
             logical_actions.append(sam_utils.logical_inputs_v1.joystick_right)
 
-        if up and not down:
+        elif up and not down:
             logical_actions.append(sam_utils.logical_inputs_v1.joystick_up)
         
-        if down and not up:
+        elif down and not up:
             logical_actions.append(sam_utils.logical_inputs_v1.joystick_down)
 
         if buttonA:

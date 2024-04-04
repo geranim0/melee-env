@@ -26,7 +26,7 @@ args = parser.parse_args()
 #players = [NOOP(enums.Character.FOX), NOOP(enums.Character.FOX)]
 players = [sam_ai(), NOOP(enums.Character.FOX)]
 
-env = MeleeEnv_v2(args.iso, players, agent_actions_to_logical_actions_fn, logical_actions_to_controller_actions_fn, gamestate_to_obs_space_fn, fast_forward=True, shuffle_controllers_after_each_game=True, num_players=2)
+env = MeleeEnv_v2(args.iso, players, fast_forward=True, shuffle_controllers_after_each_game=True, num_players=2, action_repeat=12)
 
 episodes = 10000; reward = 0
 env.start()
