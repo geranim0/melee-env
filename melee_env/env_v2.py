@@ -718,8 +718,8 @@ class MeleeEnv_v2(gym.Env):
 
 
     def close(self):
-        for t, c in self.controllers.items():
-            c.disconnect()
+        for player in self.players:
+            player.controller.disconnect()
         self.observation_space._reset()
         self.gamestate = None
         self.console.stop()
