@@ -634,6 +634,12 @@ class MeleeEnv_v2(gym.Env):
             return self.step_logical(logical_actions)
         return step
 
+    def render(self):
+        pass
+
+    def seed(self, seed=None):
+        pass
+
     def step_logical_old(self, logical_actions): # currently only supports 1v1. future: list of list for 2v2?
         done = self._is_done()
         rewards = None

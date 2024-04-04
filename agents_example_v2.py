@@ -14,7 +14,7 @@ def gamestate_to_obs_space_fn(gamestate):
 
 parser = argparse.ArgumentParser(description="Example melee-env demonstration.")
 parser.add_argument("--iso", default=None, type=str, 
-    help="Path to your NTSC 1.02/PAL SSBM Melee ISO")
+    help="Full (not relative) path to your NTSC 1.02/PAL SSBM Melee ISO")
 
 args = parser.parse_args()
 
@@ -38,6 +38,6 @@ for episode in range(episodes):
     while not done:
         simulated_action = env.action_space.sample() 
         obs, reward, done, truncated, infos = env.step(simulated_action)
-        if reward and reward < -1:
+        if reward:
             print(reward)
 
