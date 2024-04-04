@@ -721,8 +721,8 @@ class MeleeEnv_v2(gym.Env):
         for player in self.players:
             if player.controller:
                 player.controller.disconnect()
-        self.observation_space._reset()
         self.gamestate = None
+        self.previous_gamestate = None
         self.console.stop()
         time.sleep(2)
 
