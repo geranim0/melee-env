@@ -723,7 +723,9 @@ class MeleeEnv_v2(gym.Env):
                 player.controller.disconnect()
         self.gamestate = None
         self.previous_gamestate = None
-        self.console.stop()
+
+        if self.console:
+            self.console.stop()
         time.sleep(2)
 
 def get_agent_controller(agent):
