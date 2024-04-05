@@ -814,6 +814,7 @@ def _agent_actions_to_logical_actions_fn_v1(agent_actions):
         return logical_actions
 
 def _agent_actions_to_logical_actions_fn_v2(agent_actions):
+        
         stick_dir = agent_actions[0]
         buttonA = agent_actions[1]
         buttonB = agent_actions[2]
@@ -854,6 +855,8 @@ def _agent_actions_to_logical_actions_fn_v2(agent_actions):
         if full_shield == 1:
             logical_actions.append(sam_utils.logical_inputs_v1.full_shield)
         
+        print('this frame agent action= ' + str(agent_actions) + ' | ' + str(logical_actions))
+
         return logical_actions
 
 
