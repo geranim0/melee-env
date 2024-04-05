@@ -172,3 +172,24 @@ class Rest(Agent):
         self.action = action
 
         return self.action
+    
+class Fsmash(Agent):
+    # adapted from AltF4's tutorial video: https://www.youtube.com/watch?v=1R723AS1P-0
+    # This agent will target the nearest player, move to them, and rest
+    def __init__(self):
+        super().__init__()
+        self.character = enums.Character.JIGGLYPUFF
+        self.agent_type = "HardCoded"
+
+        self.action_space = ActionSpace()
+        self.observation_space = ObservationSpace()
+        self.action = 0
+        
+    @from_action_space       # translate the action from action_space to controller input
+    @from_observation_space  # convert gamestate to an observation
+    def act(self, observation):
+        observation, reward, done, info = observation
+
+        self.action = 60
+
+        return self.action

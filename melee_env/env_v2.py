@@ -834,16 +834,16 @@ def _agent_actions_to_logical_actions_fn_v2(agent_actions):
         elif stick_dir == 7:
             logical_actions.append(sam_utils.logical_inputs_v1.joystick_down_left)
 
-        elif 8:
+        elif stick_dir == 8:
             logical_actions.append(sam_utils.logical_inputs_v1.joystick_left)
         
-        elif 4:
+        elif stick_dir == 4:
             logical_actions.append(sam_utils.logical_inputs_v1.joystick_right)
 
-        elif 2:
+        elif stick_dir == 2:
             logical_actions.append(sam_utils.logical_inputs_v1.joystick_up)
         
-        elif 6:
+        elif stick_dir == 6:
             logical_actions.append(sam_utils.logical_inputs_v1.joystick_down)
 
         if buttonA == 1:
