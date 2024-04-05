@@ -118,7 +118,7 @@ class MeleeEnv_v2(gym.Env):
 
         # todo: try multibinary and integer type and see diff. is this wasteful?
         # action, character, facing, off_stage, on_ground
-        one_hot_obs = gym.spaces.Box(low=0, high=1, shape=[action_len, character_len, facing_len, offstage_len, on_ground_len], dtype=np.float32)
+        one_hot_obs = gym.spaces.Box(low=0, high=1, shape=(action_len + character_len + facing_len + offstage_len + on_ground_len,), dtype=np.float32)
 
         # int obs
         # action_frame, hitstun_frames_left, invulnerability_left, jumps_left, percent, stock
