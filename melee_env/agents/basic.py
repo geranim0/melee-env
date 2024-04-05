@@ -20,8 +20,9 @@ class Agent(ABC):
         pass
 
 class sam_ai(Agent):
-    def __init__(self):
+    def __init__(self, character):
         super().__init__()
+        self.character = character
 
     def act(self):
         pass
