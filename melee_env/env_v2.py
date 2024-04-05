@@ -753,14 +753,15 @@ def _agent_actions_to_logical_actions_fn_v1(agent_actions):
         #buttonA = agent_actions[4]
         #buttonB = agent_actions[5]
         #full_shield = agent_actions[6]
-#
-        left = agent_actions == 0
-        right = agent_actions == 1
-        up = agent_actions == 2
-        down = agent_actions == 3
-        buttonA = agent_actions == 4
-        buttonB = agent_actions == 5
-        full_shield = agent_actions == 6
+
+        print('this frame agent action= ' + str(agent_actions))
+        left = (agent_actions == 0)
+        right = (agent_actions == 1)
+        up = (agent_actions == 2)
+        down = (agent_actions == 3)
+        buttonA = (agent_actions == 4)
+        buttonB = (agent_actions == 5)
+        full_shield = (agent_actions == 6)
 
         logical_actions = []
 
@@ -801,7 +802,6 @@ def _agent_actions_to_logical_actions_fn_v1(agent_actions):
 
 
 def all_players_press_nothing(players):
-    print('all player press nothing')
     for player in players:
         player.controller.release_all()
         player.controller.flush()
