@@ -9,7 +9,6 @@ import copy
 from melee_env import sam_utils
 import random
 from melee_env.agents.basic import *
-from gymnasium.spaces import MultiBinary
 import gymnasium as gym
 
 class MeleeEnv_v2(gym.Env):
@@ -81,9 +80,9 @@ class MeleeEnv_v2(gym.Env):
         num_actions = 7
 
         if self._num_players == 2:
-            return MultiBinary(num_actions)
+            return gym.spaces.Discrete(num_actions)
         elif self._num_players == 4:
-            return MultiBinary(2 * num_actions)
+            return gym.spaces.Discrete(2 * num_actions)
         else:
             raise NotImplementedError(self.__class__.__name__ + ': num_players must be 2 or 4')
 
@@ -739,13 +738,22 @@ def execute_actions(controller, actions):
     controller.flush()
 
 def _agent_actions_to_logical_actions_fn_v1(agent_actions):
-        left = agent_actions[0]
-        right = agent_actions[1]
-        up = agent_actions[2]
-        down = agent_actions[3]
-        buttonA = agent_actions[4]
-        buttonB = agent_actions[5]
-        full_shield = agent_actions[6]
+        # old stuff with multibinary (was not working with dreamer stuff)
+        #left = agent_actions[0] 
+        #right = agent_actions[1]
+        #up = agent_actions[2]
+        #down = agent_actions[3]
+        #buttonA = agent_actions[4]
+        #buttonB = agent_actions[5]
+        #full_shield = agent_actions[6]
+#
+        left = agent_actions == 0
+        right = agent_actions == 1
+        up = agent_actions == 2
+        down = agent_actions == 3
+        buttonA = agent_actions == 4
+        buttonB = agent_actions == 5
+        full_shield = agent_actions == 6
 
         logical_actions = []
 
