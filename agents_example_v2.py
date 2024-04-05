@@ -24,7 +24,7 @@ args = parser.parse_args()
 #players = [sam_ai(), Rest()] # gets stuck in menu
 #players = [Rest(), NOOP(enums.Character.FOX)]
 #players = [NOOP(enums.Character.FOX), NOOP(enums.Character.FOX)]
-players = [sam_ai(), NOOP(enums.Character.FOX)]
+players = [sam_ai(), CPU(melee.enums.Character.JIGGLYPUFF, 1)]
 
 env = MeleeEnv_v2(args.iso, players, fast_forward=True, shuffle_controllers_after_each_game=True, num_players=2, action_repeat=12)
 

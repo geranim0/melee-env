@@ -320,7 +320,7 @@ class MeleeEnv_v2(gym.Env):
                 melee.enums.Stage.FOUNTAIN_OF_DREAMS,
                 melee.enums.Stage.YOSHIS_STORY])
         else:
-            stage = melee.enums.Stage.BATTLEFIELD
+            stage = melee.enums.Stage.FINAL_DESTINATION
         print('chosen stage = ' + str(stage))
         return stage
 
@@ -370,7 +370,11 @@ class MeleeEnv_v2(gym.Env):
         
         all_players_press_nothing(self.players)
 
-        for player in self.players:
+        cpu_players = [player for player in self.players if player.agent_type == "CPU"]
+        other_players = [player for player in self.players if player not in cpu_players]
+
+
+        for player in np.concatenate((cpu_players, other_players), axis=None):
             while not melee.MenuHelper.choose_character(
                             character=player.character,
                             gamestate=self.gamestate,
@@ -378,18 +382,21 @@ class MeleeEnv_v2(gym.Env):
                             costume=0, # todo: random this
                             swag=False,
                             start=False,
-                            cpu_level=0 if player.agent_type == "CPU" else 0):
+                            cpu_level=player.lvl if player.agent_type == "CPU" else 0):
                 print('player port: ' + str(player.controller.port) + ' just chose ' + str(player.character))
                 self.gamestate = self.console.step()
-                
         
-        all_players_press_nothing(self.players)
-        self.players[0].controller.release_all()
-        self.gamestate = self.console.step()
-        self.players[0].controller.press_button(melee.enums.Button.BUTTON_START)
-        self.players[0].controller.flush()
-        self.gamestate = self.console.step()
-        self.players[0].controller.release_all()
+        current_frame = 0
+        while self.gamestate.menu_state != melee.Menu.STAGE_SELECT:
+            if current_frame % 2 == 0:
+                all_players_press_nothing(self.players)
+                self.gamestate = self.console.step()
+                self.players[0].controller.press_button(melee.enums.Button.BUTTON_START)
+                self.players[0].controller.flush()
+
+            self.gamestate = self.console.step()
+            self.players[0].controller.release_all()
+            current_frame += 1
         
 
     def setup(self):
