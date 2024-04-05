@@ -682,7 +682,7 @@ class MeleeEnv_v2(gym.Env):
         done = self._is_done()
         rewards = 0
         truncated = None
-        infos = None
+        infos = {}
 
         for i in range(0, self._action_repeat):
             if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
