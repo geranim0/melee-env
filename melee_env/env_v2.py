@@ -608,7 +608,7 @@ class MeleeEnv_v2(gym.Env):
         return self._gamestate_to_obs_space_fn(obs), self._get_info() # obs, info
 
     def _get_info(self):
-        return None
+        return {}
 
     # todo: fix for 4 players and make it cleaner
     def _is_done(self):
@@ -645,7 +645,7 @@ class MeleeEnv_v2(gym.Env):
         done = self._is_done()
         rewards = None
         truncated = None
-        infos = None
+        infos = {}
 
         
         if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
