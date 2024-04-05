@@ -33,7 +33,7 @@ class MeleeEnv_v2(gym.Env):
         self.iso_path = Path(iso_path).resolve()
         self.players = players
 
-        self.step = self._gen_step(_agent_actions_to_logical_actions_fn_v1)
+        self.step = self._gen_step(_agent_actions_to_logical_actions_fn_v2)
         self._logical_actions_to_controller_actions_fn = sam_utils.logical_v1_to_libmelee_inputs
         self._gamestate_to_obs_space_fn = self._gamestate_to_obs_space_fn_v1
 
@@ -73,7 +73,7 @@ class MeleeEnv_v2(gym.Env):
         self.console = None
 
 
-    def _get_action_space(self):
+    def _get_action_space_old(self):
         # left, right, up, down = 4
         # A, B, full R, = 3
         # => 7
@@ -83,6 +83,19 @@ class MeleeEnv_v2(gym.Env):
             return gym.spaces.Discrete(num_actions)
         elif self._num_players == 4:
             return gym.spaces.Discrete(2 * num_actions)
+        else:
+            raise NotImplementedError(self.__class__.__name__ + ': num_players must be 2 or 4')
+
+    def _get_action_space(self):
+        # left, right, up, down and diags + nothing = 9 
+        # A, B, full R, = 3
+        # => 12
+        num_joystick_positions = 9
+
+        if self._num_players == 2:
+            return gym.spaces.MultiDiscrete([num_joystick_positions, 2, 2, 2])
+        elif self._num_players == 4:
+            return gym.spaces.MultiDiscrete([num_joystick_positions, num_joystick_positions, 2, 2, 2, 2, 2, 2])
         else:
             raise NotImplementedError(self.__class__.__name__ + ': num_players must be 2 or 4')
 
@@ -796,6 +809,49 @@ def _agent_actions_to_logical_actions_fn_v1(agent_actions):
             logical_actions.append(sam_utils.logical_inputs_v1.button_B)
         
         if full_shield:
+            logical_actions.append(sam_utils.logical_inputs_v1.full_shield)
+        
+        return logical_actions
+
+def _agent_actions_to_logical_actions_fn_v2(agent_actions):
+        stick_dir = agent_actions[0]
+        buttonA = agent_actions[1]
+        buttonB = agent_actions[2]
+        full_shield = agent_actions[3]
+
+        logical_actions = []
+
+        if stick_dir == 1:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_left_up)
+        
+        elif stick_dir == 3:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_up_right)
+
+        elif stick_dir == 5:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_right_down)
+
+        elif stick_dir == 7:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_down_left)
+
+        elif 8:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_left)
+        
+        elif 4:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_right)
+
+        elif 2:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_up)
+        
+        elif 6:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_down)
+
+        if buttonA == 1:
+            logical_actions.append(sam_utils.logical_inputs_v1.button_A)
+        
+        if buttonB == 1:
+            logical_actions.append(sam_utils.logical_inputs_v1.button_B)
+        
+        if full_shield == 1:
             logical_actions.append(sam_utils.logical_inputs_v1.full_shield)
         
         return logical_actions
