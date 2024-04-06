@@ -15,7 +15,7 @@ import code
 
 
 class DolphinConfig:
-    def __init__(self):
+    def __init__(self, slippi_game_path_arg, env_num = "0"):
 
         # setup paths
         self.home = Path.home()
@@ -32,7 +32,7 @@ class DolphinConfig:
         elif self.platform == "darwin":
             self.data_path = self.home / "Library/Application Support"
 
-        self.slippi_path = self.data_path / "melee-env" / "Slippi"
+        self.slippi_path = self.data_path / "melee-env" / env_num / "Slippi"
         #self.slippi_path = self.data_path 
 
         self.slippi_replays_path = self.slippi_path / "replays"
@@ -56,7 +56,7 @@ class DolphinConfig:
             # assume this is a new installation?
 
             # need to download slippi (based on platform!)
-            self.install_slippi(self.slippi_path)
+            self.install_slippi(self.slippi_path, slippi_game_path_arg)
 
             # download gecko codes for slippi
             self.apply_gecko_codes(self.slippi_path)
@@ -182,7 +182,7 @@ class DolphinConfig:
         progress_bar.close()
         return Path(local_filename).resolve()
 
-    def install_slippi(self, install_path):
+    def install_slippi(self, install_path, slippi_game_path_arg):
         if self.platform == "linux":
             target_url = "https://github.com/project-slippi/Ishiiruka/releases/download/v3.4.0/Slippi_Online-x86_64.AppImage"
             #target_url = "https://github.com/project-slippi/Ishiiruka/releases/latest/download/Slippi_Online-x86_64.AppImage"
@@ -198,8 +198,7 @@ class DolphinConfig:
         install_path.mkdir(parents=True, exist_ok=True)
 
         # Download latest version of slippi
-        #slippi_game_path = self._download_file(target_url)
-        slippi_game_path = Path("../Ishiiruka/Slippi_Online-x86_64.AppImage").resolve() # todo: make more future proof
+        slippi_game_path = slippi_game_path_arg
 
         # move to our directory
         shutil.copy(slippi_game_path, install_path / slippi_game_path.name)

@@ -16,6 +16,7 @@ class MeleeEnv_v2(gym.Env):
 
     def __init__(self, 
         iso_path,
+        slippi_game_path,
         players,
         fast_forward=False, 
         blocking_input=True,
@@ -25,9 +26,10 @@ class MeleeEnv_v2(gym.Env):
         randomize_character = True,
         num_players = 2,
         max_match_steps = 60*60*8,
-        action_repeat = 12):
+        action_repeat = 12,
+        env_num = "0"):
 
-        self.d = DolphinConfig()
+        self.d = DolphinConfig(slippi_game_path, env_num)
         self.d.set_ff(fast_forward)
 
         self.iso_path = Path(iso_path).resolve()
