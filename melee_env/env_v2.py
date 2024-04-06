@@ -26,7 +26,7 @@ class MeleeEnv_v2(gym.Env):
         randomize_character = True,
         num_players = 2,
         max_match_steps = 60*60*8,
-        action_repeat = 6,
+        action_repeat = 12,
         env_num = "0",
         slippi_port = "51441"):
 
@@ -344,35 +344,35 @@ class MeleeEnv_v2(gym.Env):
 
     def _randomize_characters(self):
         for player in self.players:
-            if type(player) is sam_ai:
-                player.character = random.choice([
-                    melee.enums.Character.BOWSER,
-                    melee.enums.Character.CPTFALCON,
-                    melee.enums.Character.DK,
-                    melee.enums.Character.DOC,
-                    melee.enums.Character.FALCO,
-                    melee.enums.Character.FOX,
-                    melee.enums.Character.GAMEANDWATCH,
-                    melee.enums.Character.GANONDORF,
-                    melee.enums.Character.JIGGLYPUFF,
-                    #melee.enums.Character.KIRBY, has illegal actions 65535 and 396
-                    melee.enums.Character.LINK,
-                    melee.enums.Character.LUIGI,
-                    melee.enums.Character.MARIO,
-                    melee.enums.Character.MARTH,
-                    melee.enums.Character.MEWTWO,
-                    melee.enums.Character.NESS,
-                    melee.enums.Character.PEACH,
-                    melee.enums.Character.PICHU,
-                    melee.enums.Character.PIKACHU,
-                    melee.enums.Character.POPO,
-                    melee.enums.Character.ROY,
-                    melee.enums.Character.SAMUS,
-                    #melee.enums.Character.SHEIK, it makes it bug
-                    melee.enums.Character.YLINK,
-                    melee.enums.Character.YOSHI,
-                    melee.enums.Character.ZELDA])
-                print('chosen char=' + str(player.character))
+            #if type(player) is sam_ai:
+            player.character = random.choice([
+                melee.enums.Character.BOWSER,
+                melee.enums.Character.CPTFALCON,
+                melee.enums.Character.DK,
+                melee.enums.Character.DOC,
+                melee.enums.Character.FALCO,
+                melee.enums.Character.FOX,
+                melee.enums.Character.GAMEANDWATCH,
+                melee.enums.Character.GANONDORF,
+                melee.enums.Character.JIGGLYPUFF,
+                #melee.enums.Character.KIRBY, has illegal actions 65535 and 396
+                melee.enums.Character.LINK,
+                melee.enums.Character.LUIGI,
+                melee.enums.Character.MARIO,
+                melee.enums.Character.MARTH,
+                melee.enums.Character.MEWTWO,
+                melee.enums.Character.NESS,
+                melee.enums.Character.PEACH,
+                melee.enums.Character.PICHU,
+                melee.enums.Character.PIKACHU,
+                melee.enums.Character.POPO,
+                melee.enums.Character.ROY,
+                melee.enums.Character.SAMUS,
+                #melee.enums.Character.SHEIK, it makes it bug
+                melee.enums.Character.YLINK,
+                melee.enums.Character.YOSHI,
+                melee.enums.Character.ZELDA])
+            print('chosen char=' + str(player.character))
 
     def _populate_friendly_enemy_ports(self):
         self._friendly_ports = []
@@ -486,6 +486,9 @@ class MeleeEnv_v2(gym.Env):
     # returns list of [port, stocks]
     def get_stocks_v2(self, gamestate):
         return {port : int(gamestate.players[port].stock) for port in gamestate.players.keys()}
+    
+    def get_characters(self, gamestate):
+        return {port : gamestate.players[port].character for port in gamestate.players.keys()}
   
     def get_actions(self, gamestate):
         actions = [gamestate.players[i].action.value for i in list(gamestate.players.keys())]
@@ -709,6 +712,10 @@ class MeleeEnv_v2(gym.Env):
         truncated = None
         infos = {}
 
+        for player in self.players:
+            if player.character != self.get_characters()[player.controller.port]:
+                print('error! a player chose: ' + str(player.character) + ' but plays as ' + str(self.get_characters()[player.controller.port]))
+
         for i in range(0, self._action_repeat):
             if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
                 
@@ -860,7 +867,7 @@ def _agent_actions_to_logical_actions_fn_v2(agent_actions):
         if full_shield == 1:
             logical_actions.append(sam_utils.logical_inputs_v1.full_shield)
         
-        print('this frame agent action= ' + str(agent_actions) + ' | ' + str(logical_actions))
+        #print('this frame agent action= ' + str(agent_actions) + ' | ' + str(logical_actions))
 
         return logical_actions
 
