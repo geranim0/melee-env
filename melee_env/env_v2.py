@@ -27,7 +27,8 @@ class MeleeEnv_v2(gym.Env):
         num_players = 2,
         max_match_steps = 60*60*8,
         action_repeat = 6,
-        env_num = "0"):
+        env_num = "0",
+        slippi_port = "51441"):
 
         self.d = DolphinConfig(slippi_game_path, env_num)
         self.d.set_ff(fast_forward)
@@ -50,6 +51,7 @@ class MeleeEnv_v2(gym.Env):
 
         self.blocking_input = blocking_input
         self.ai_starts_game = ai_starts_game
+        self.slippi_port = slippi_port
 
         self._shuffle_controllers_after_each_game = shuffle_controllers_after_each_game
         self._randomize_stage = randomize_stage
@@ -277,7 +279,8 @@ class MeleeEnv_v2(gym.Env):
             dolphin_home_path=dolphin_home_path,
             blocking_input=self.blocking_input,
             tmp_home_directory=True,
-            gfx_backend='Vulkan')
+            gfx_backend='Vulkan',
+            slippi_port=self.slippi_port)
 
         # print(self.console.dolphin_home_path)  # add to logging later
         # Configure Dolphin for the correct controller setup, add controllers

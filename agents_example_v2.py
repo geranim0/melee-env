@@ -22,6 +22,9 @@ parser.add_argument("--slippi_game_path", default=None, type=str,
 parser.add_argument("--env_num", default=None, type=str, 
     help="if using more than 1 env")
 
+parser.add_argument("--slippi_port", default="51441", type=str, 
+    help="if using more than 1 env")
+
 args = parser.parse_args()
 
 #players = [Rest(), NOOP(enums.Character.FOX)]
@@ -32,7 +35,7 @@ players = [sam_ai(), Rest()] # gets stuck in menu
 #players = [NOOP(enums.Character.FOX), NOOP(enums.Character.FOX)]
 #players = [sam_ai(), CPU(melee.enums.Character.JIGGLYPUFF, 1)]
 
-env = MeleeEnv_v2(args.iso, args.slippi_game_path, players, fast_forward=True, shuffle_controllers_after_each_game=True, num_players=2, action_repeat=12, env_num=args.env_num)
+env = MeleeEnv_v2(args.iso, args.slippi_game_path, players, fast_forward=True, shuffle_controllers_after_each_game=True, num_players=2, action_repeat=12, env_num=args.env_num, slippi_port=args.slippi_port)
 
 episodes = 10000; reward = 0
 env.start()
