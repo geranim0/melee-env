@@ -198,7 +198,7 @@ class DolphinConfig:
         install_path.mkdir(parents=True, exist_ok=True)
 
         # Download latest version of slippi
-        slippi_game_path = slippi_game_path_arg
+        slippi_game_path = Path(slippi_game_path_arg).resolve()
 
         # move to our directory
         shutil.copy(slippi_game_path, install_path / slippi_game_path.name)
