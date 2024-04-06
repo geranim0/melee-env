@@ -487,8 +487,8 @@ class MeleeEnv_v2(gym.Env):
     def get_stocks_v2(self, gamestate):
         return {port : int(gamestate.players[port].stock) for port in gamestate.players.keys()}
     
-    def get_characters(self, gamestate):
-        return {port : gamestate.players[port].character for port in gamestate.players.keys()}
+    def get_characters(self):
+        return {port : self.gamestate.players[port].character for port in self.gamestate.players.keys()}
   
     def get_actions(self, gamestate):
         actions = [gamestate.players[i].action.value for i in list(gamestate.players.keys())]
