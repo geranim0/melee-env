@@ -1,2 +1,3 @@
 include melee_env/install_data/fast_forward
 include melee_env/install_data/GCPadNew.ini
+include melee_env/install_data/GALE01r2.ini
