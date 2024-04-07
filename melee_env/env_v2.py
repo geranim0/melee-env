@@ -288,17 +288,14 @@ class MeleeEnv_v2(gym.Env):
 
         for i in range(len(self.players)):
             curr_player = self.players[i]
-            if curr_player.agent_type == "HMN":
+            if curr_player.agent_type == agent_type.HMN:
                 self.d.set_controller_type(i+1, enums.ControllerType.GCN_ADAPTER)
                 curr_player.controller = melee.Controller(console=self.console, port=i+1, type=melee.ControllerType.GCN_ADAPTER)
-                #curr_player.port = i+1
                 human_detected = True
-            elif curr_player.agent_type in ["AI", "CPU", "HardCoded"]:
+            elif curr_player.agent_type in [agent_type.step_controlled_AI, agent_type.enemy_controlled_AI, agent_type.CPU, agent_type.HARDCODED]:
                 self.d.set_controller_type(i+1, enums.ControllerType.STANDARD)
                 curr_player.controller = melee.Controller(console=self.console, port=i+1)
-                #if curr_player.agent_type == "AI":
                 self.menu_control_agent = curr_player
-                #curr_player.port = i+1 
             else:  # no player
                 self.d.set_controller_type(i+1, enums.ControllerType.UNPLUGGED)
             
@@ -379,7 +376,7 @@ class MeleeEnv_v2(gym.Env):
         self._enemy_ports = []
         
         for player in self.players:
-            if player.agent_type == "AI": #todo: replace all othose with an enum
+            if player.agent_type == agent_type.step_controlled_AI: #todo: replace all othose with an enum
                 self._friendly_ports.append(player.controller.port)
             else:
                 self._enemy_ports.append(player.controller.port)
@@ -388,7 +385,7 @@ class MeleeEnv_v2(gym.Env):
         
         all_players_press_nothing(self.players)
 
-        cpu_players = [player for player in self.players if player.agent_type == "CPU"]
+        cpu_players = [player for player in self.players if player.agent_type == agent_type.CPU]
         other_players = [player for player in self.players if player not in cpu_players]
 
 
@@ -400,8 +397,8 @@ class MeleeEnv_v2(gym.Env):
                             costume=0, # todo: random this
                             swag=False,
                             start=False,
-                            cpu_level=player.lvl if player.agent_type == "CPU" else 0):
-                print('player port: ' + str(player.controller.port) + ' just chose ' + str(player.character))
+                            cpu_level=player.lvl if player.agent_type == agent_type.CPU else 0):
+                #print('player port: ' + str(player.controller.port) + ' just chose ' + str(player.character))
                 self.gamestate = self.console.step()
         
         current_frame = 0
@@ -706,6 +703,51 @@ class MeleeEnv_v2(gym.Env):
 
         return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
     
+    # supports AI enemies
+    def step_logical_v2(self, logical_actions):
+        done = self._is_done()
+        rewards = 0
+        truncated = None
+        infos = {}
+
+        for i in range(0, self._action_repeat):
+            if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
+                
+                if self._current_match_steps < self._max_match_steps:
+                    for player in self.players:
+                        match player.agent_type:
+                            case agent_type.step_controlled_AI:
+                                controller_actions = self._logical_actions_to_controller_actions_fn(logical_actions, i)
+                                this_agent_controller = get_agent_controller(player)
+                                execute_actions(this_agent_controller, controller_actions)
+                            case agent_type.enemy_controlled_AI:
+                                controller_actions = player.trained_agent_act(self._gamestate_to_obs_space_fn(self.gamestate))
+                                this_agent_controller = get_agent_controller(player)
+                                execute_actions(this_agent_controller, controller_actions)
+                            case _:
+                                player.act(self.gamestate)
+
+                
+                else:
+                    all_players_press_nothing(self.players)
+                    return self._gamestate_to_obs_space_fn(self.gamestate), 0, True, True, infos
+
+
+                self.gamestate = self.console.step()
+                self._current_match_steps += 1
+
+                done = self._is_done()
+
+                rewards += self.calculate_rewards_v2(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
+        
+                self.previous_gamestate = self.gamestate
+
+                if done:
+                    all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
+                    break
+
+        return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
+
     def step_logical(self, logical_actions): # currently only supports 1v1. future: list of list for 2v2?
         done = self._is_done()
         rewards = 0
@@ -721,7 +763,7 @@ class MeleeEnv_v2(gym.Env):
                 
                 if self._current_match_steps < self._max_match_steps:
                     for player in self.players:
-                        if not player.agent_type == "AI":
+                        if not player.agent_type == agent_type.step_controlled_AI:
                             player.act(self.gamestate)
                         else:
                             controller_actions = self._logical_actions_to_controller_actions_fn(logical_actions, i)

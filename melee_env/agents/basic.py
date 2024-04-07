@@ -3,10 +3,19 @@ from melee import enums
 import numpy as np
 from melee_env.agents.util import *
 import code
+from enum import Enum
+
+class agent_type(Enum):
+    step_controlled_AI = 1
+    enemy_controlled_AI = 2
+    CPU = 3
+    HARDCODED = 4
+    HMN = 5
+
 
 class Agent(ABC):
     def __init__(self):
-        self.agent_type = "AI"
+        self.agent_type = None
         self.controller = None #set at env.py:63
         self.character = None
         #self.port = None  # this is also in controller, maybe redundant?
@@ -23,6 +32,26 @@ class sam_ai(Agent):
     def __init__(self, character=None):
         super().__init__()
         self.character = character
+        self.agent_type = agent_type.step_controlled_AI
+
+    def act(self):
+        pass
+
+class step_controlled_ai(Agent):
+    def __init__(self, character=None):
+        super().__init__()
+        self.character = character
+        self.agent_type = agent_type.step_controlled_AI
+
+    def act(self):
+        pass
+
+class enemy_ai(Agent):
+    def __init__(self, trained_agent_act, character=None):
+        super().__init__()
+        self.trained_agent_act = trained_agent_act
+        self.character = character
+        self.agent_type = agent_type.enemy_controlled_AI
 
     def act(self):
         pass
@@ -38,7 +67,7 @@ class AgentChooseCharacter(Agent):
 class Human(Agent):
     def __init__(self):
         super().__init__()
-        self.agent_type = "HMN"
+        self.agent_type = agent_type.HMN
     
     def act(self, gamestate):
         pass
@@ -47,7 +76,7 @@ class Human(Agent):
 class CPU(AgentChooseCharacter):
     def __init__(self, character, lvl):
         super().__init__(character)
-        self.agent_type = "CPU"
+        self.agent_type = agent_type.CPU
         if not 1 <= lvl <= 9:
             raise ValueError(f"CPU Level must be 1-9. Got {lvl}")
         self.lvl = lvl
@@ -59,7 +88,7 @@ class CPU(AgentChooseCharacter):
 class NOOP(AgentChooseCharacter):
     def __init__(self, character):
         super().__init__(character)
-        self.agent_type = "HardCoded"
+        self.agent_type = agent_type.HARDCODED
 
     def act(self, gamestate):
         self.action = 0
@@ -69,7 +98,7 @@ class Random(AgentChooseCharacter):
     def __init__(self, character):
         super().__init__(character)
         self.action_space = ActionSpace()
-        self.agent_type = "HardCoded"
+        self.agent_type = agent_type.HARDCODED
     
     @from_action_space
     def act(self, gamestate):
@@ -80,7 +109,7 @@ class Shine(Agent):
     def __init__(self):
         super().__init__()
         self.character = enums.Character.FOX
-        self.agent_type = "HardCoded"
+        self.agent_type = agent_type.HARDCODED
     
     def act(self, gamestate):
         state = gamestate.players[self.controller.port].action
@@ -108,7 +137,7 @@ class Rest(Agent):
     def __init__(self):
         super().__init__()
         self.character = enums.Character.JIGGLYPUFF
-        self.agent_type = "HardCoded"
+        self.agent_type = agent_type.HARDCODED
 
         self.action_space = ActionSpace()
         self.observation_space = ObservationSpace()
@@ -179,7 +208,7 @@ class Fsmash(Agent):
     def __init__(self):
         super().__init__()
         self.character = enums.Character.JIGGLYPUFF
-        self.agent_type = "HardCoded"
+        self.agent_type = agent_type.HARDCODED
 
         self.action_space = ActionSpace()
         self.observation_space = ObservationSpace()
