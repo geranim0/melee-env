@@ -36,7 +36,8 @@ class MeleeEnv_v2(gym.Env):
         self.iso_path = Path(iso_path).resolve()
         self.players = players
 
-        self.step = self._gen_step(_agent_actions_to_logical_actions_fn_v2)
+        #self.step = self._gen_step(MeleeEnv_v2.agent_actions_to_logical_actions_fn_v2)
+
         self._logical_actions_to_controller_actions_fn = sam_utils.logical_v1_to_libmelee_inputs
         self._gamestate_to_obs_space_fn = self._gamestate_to_obs_space_fn_v1
 
@@ -77,33 +78,23 @@ class MeleeEnv_v2(gym.Env):
         self.console = None
 
 
-    def _get_action_space_old(self):
-        # left, right, up, down = 4
-        # A, B, full R, = 3
-        # => 7
-        num_actions = 7
-
-        if self._num_players == 2:
-            return gym.spaces.Discrete(num_actions)
-        elif self._num_players == 4:
-            return gym.spaces.Discrete(2 * num_actions)
-        else:
-            raise NotImplementedError(self.__class__.__name__ + ': num_players must be 2 or 4')
-
-    def _get_action_space(self):
+    @staticmethod
+    def get_action_space_v1(num_players):
         # left, right, up, down and diags + nothing = 9 
         # A, B, full R, = 3
         # => 12
         num_joystick_positions = 9
 
-        if self._num_players == 2:
+        if num_players == 2:
             return gym.spaces.MultiDiscrete([num_joystick_positions, 2, 2, 2])
-        elif self._num_players == 4:
+        elif num_players == 4:
             return gym.spaces.MultiDiscrete([num_joystick_positions, num_joystick_positions, 2, 2, 2, 2, 2, 2])
         else:
-            raise NotImplementedError(self.__class__.__name__ + ': num_players must be 2 or 4')
-
-    def _get_obervation_space(self):
+            return NotImplementedError("num players must be 2 or 4. Got: " + str(num_players))
+        
+    
+    @staticmethod
+    def get_observation_space_v1(num_players):
         # action (enum.Action): one hot (385 bits)
         # action_frame (int):
         # character (enum.Character): 
@@ -153,7 +144,7 @@ class MeleeEnv_v2(gym.Env):
             dtype=np.float32)
         
 
-        if self._num_players == 2:
+        if num_players == 2:
             all_obs_space = gym.spaces.Dict({
                 'one_hot_p1': one_hot_obs,
                 'int_obs_p1': int_obs,
@@ -163,7 +154,7 @@ class MeleeEnv_v2(gym.Env):
                 'int_obs_p2': int_obs,
                 'float_obs_p2': float_obs,
             })
-        elif self._num_players == 4:
+        elif num_players == 4:
             all_obs_space = gym.spaces.Dict({
                 'one_hot_p1': one_hot_obs,
                 'int_obs_p1': int_obs,
@@ -182,12 +173,18 @@ class MeleeEnv_v2(gym.Env):
                 'float_obs_p4': float_obs,
             })
         else:
-            raise NotImplementedError(self.__class__.__name__ + ': num_players must be 2 or 4')
+            raise NotImplementedError('num_players must be 2 or 4')
 
         return all_obs_space
-    
 
-    def _gamestate_to_obs_space_fn_v1(self, gamestate):        
+    def _get_action_space(self):
+        return MeleeEnv_v2.get_action_space_v1(self._num_players)
+
+    def _get_obervation_space(self):
+        return MeleeEnv_v2.get_observation_space_v1(self._num_players)
+    
+    @staticmethod
+    def gamestate_to_obs_space_v1(gamestate, friendly_ports, enemy_ports):
         # one hot
         action = {port: gamestate.players[port].action for port in gamestate.players.keys()}
         character = {port: gamestate.players[port].character for port in gamestate.players.keys()}
@@ -214,7 +211,7 @@ class MeleeEnv_v2(gym.Env):
 
         current_player_index = 1
         obs = {}
-        for port in np.concatenate((self._friendly_ports, self._enemy_ports), axis=None):
+        for port in np.concatenate((friendly_ports, enemy_ports), axis=None):
             
             # one hot
             one_hot_dict_idx = "one_hot_p" + str(current_player_index)
@@ -266,7 +263,8 @@ class MeleeEnv_v2(gym.Env):
         
         return obs
 
-        
+    def _gamestate_to_obs_space_fn_v1(self, gamestate):        
+        return MeleeEnv_v2.gamestate_to_obs_space_v1(gamestate, self._friendly_ports, self._enemy_ports)
 
     def start(self):
         if sys.platform == "linux":
@@ -656,7 +654,7 @@ class MeleeEnv_v2(gym.Env):
     def _gen_step(self, agent_to_logical_actions_fn):
         def step(agent_actions):
             logical_actions = agent_to_logical_actions_fn(agent_actions)
-            return self.step_logical(logical_actions)
+            return self.step_logical_v2(logical_actions)
         return step
 
     def render(self):
@@ -665,41 +663,53 @@ class MeleeEnv_v2(gym.Env):
     def seed(self, seed=None):
         pass
 
-    def step_logical_old(self, logical_actions): # currently only supports 1v1. future: list of list for 2v2?
+    def step(self, actions):
+        return self.step_v3(actions)
+
+    def step_v3(self, raw_step_controlled_agent_actions):
         done = self._is_done()
-        rewards = None
+        rewards = 0
         truncated = None
         infos = {}
 
+        for i in range(0, self._action_repeat):
+            if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
+                
+                if self._current_match_steps < self._max_match_steps:
+                    for player in self.players:
+                        if player.agent_type == agent_type.step_controlled_AI:
+                            logical_actions = player.raw_agent_actions_to_logical_fn(raw_step_controlled_agent_actions)
+                            controller_actions = player.logical_to_controller_fn(logical_actions, i)
+                            this_agent_controller = get_agent_controller(player)
+                            execute_actions(this_agent_controller, controller_actions)
+                        elif player.agent_type == agent_type.enemy_controlled_AI:
+                            obs = player.gamestate_to_observation_fn(self.gamestate)
+                            raw_actions = player.observation_to_raw_inputs_fn(obs)
+                            logical_actions = player.raw_agent_actions_to_logical_fn(raw_actions)
+                            controller_actions = player.logical_to_controller_fn(logical_actions, i)
+                            this_agent_controller = get_agent_controller(player)
+                            execute_actions(this_agent_controller, controller_actions)
+                        else:
+                            player.act(self.gamestate)
+
+                
+                else:
+                    all_players_press_nothing(self.players)
+                    return self._gamestate_to_obs_space_fn(self.gamestate), 0, True, True, infos
+
+
+                self.gamestate = self.console.step()
+                self._current_match_steps += 1
+
+                done = self._is_done()
+
+                rewards += self.calculate_rewards_v2(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
         
-        if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
-            
-            if self._current_match_steps < self._max_match_steps:
-                for player in self.players:
-                    if not player.agent_type == "AI":
-                        player.act(self.gamestate)
-                    else:
-                        controller_actions = self._logical_actions_to_controller_actions_fn(logical_actions)
-                        this_agent_controller = get_agent_controller(player)
-                        execute_actions(this_agent_controller, controller_actions)
-            
-            else:
-                all_players_press_nothing(self.players)
-                return self._gamestate_to_obs_space_fn(self.gamestate), 0, True, True, infos
+                self.previous_gamestate = self.gamestate
 
-
-            self.gamestate = self.console.step()
-            self._current_match_steps += 1
-
-            done = self._is_done()
-
-            rewards = self.calculate_rewards_v2(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
-        
-        self.previous_gamestate = self.gamestate
-        
-
-        if done:
-            all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
+                if done:
+                    all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
+                    break
 
         return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
     
@@ -715,17 +725,18 @@ class MeleeEnv_v2(gym.Env):
                 
                 if self._current_match_steps < self._max_match_steps:
                     for player in self.players:
-                        match player.agent_type:
-                            case agent_type.step_controlled_AI:
-                                controller_actions = self._logical_actions_to_controller_actions_fn(logical_actions, i)
-                                this_agent_controller = get_agent_controller(player)
-                                execute_actions(this_agent_controller, controller_actions)
-                            case agent_type.enemy_controlled_AI:
-                                controller_actions = player.trained_agent_act(self._gamestate_to_obs_space_fn(self.gamestate))
-                                this_agent_controller = get_agent_controller(player)
-                                execute_actions(this_agent_controller, controller_actions)
-                            case _:
-                                player.act(self.gamestate)
+                        if player.agent_type == agent_type.step_controlled_AI:
+                            controller_actions = self._logical_actions_to_controller_actions_fn(logical_actions, i)
+                            this_agent_controller = get_agent_controller(player)
+                            execute_actions(this_agent_controller, controller_actions)
+                        elif player.agent_type == agent_type.enemy_controlled_AI:
+                            enemy_ai_raw_actions = player.trained_agent_act(self._gamestate_to_obs_space_fn(self.gamestate))
+                            enemy_ai_logical_actions = MeleeEnv_v2.agent_actions_to_logical_actions_fn_v2(enemy_ai_raw_actions)
+                            controller_actions = self._logical_actions_to_controller_actions_fn(enemy_ai_logical_actions, i)
+                            this_agent_controller = get_agent_controller(player)
+                            execute_actions(this_agent_controller, controller_actions)
+                        else:
+                            player.act(self.gamestate)
 
                 
                 else:
@@ -790,6 +801,52 @@ class MeleeEnv_v2(gym.Env):
 
         return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
 
+    @staticmethod
+    def agent_actions_to_logical_actions_fn_v2(agent_actions):
+        
+        stick_dir = agent_actions[0]
+        buttonA = agent_actions[1]
+        buttonB = agent_actions[2]
+        full_shield = agent_actions[3]
+
+        logical_actions = []
+
+        if stick_dir == 1:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_left_up)
+        
+        elif stick_dir == 3:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_up_right)
+
+        elif stick_dir == 5:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_right_down)
+
+        elif stick_dir == 7:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_down_left)
+
+        elif stick_dir == 8:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_left)
+        
+        elif stick_dir == 4:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_right)
+
+        elif stick_dir == 2:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_up)
+        
+        elif stick_dir == 6:
+            logical_actions.append(sam_utils.logical_inputs_v1.joystick_down)
+
+        if buttonA == 1:
+            logical_actions.append(sam_utils.logical_inputs_v1.button_A)
+        
+        if buttonB == 1:
+            logical_actions.append(sam_utils.logical_inputs_v1.button_B)
+        
+        if full_shield == 1:
+            logical_actions.append(sam_utils.logical_inputs_v1.full_shield)
+        
+        #print('this frame agent action= ' + str(agent_actions) + ' | ' + str(logical_actions))
+
+        return logical_actions
 
     def close(self):
         for player in self.players:
@@ -801,6 +858,60 @@ class MeleeEnv_v2(gym.Env):
         if self.console:
             self.console.stop()
         time.sleep(2)
+
+    class logical_inputs():
+        class v1(Enum):
+            joystick_left = 0
+            joystick_left_up = 1
+            joystick_up = 2
+            joystick_up_right = 3
+            joystick_right = 4
+            joystick_right_down = 5
+            joystick_down = 6
+            joystick_down_left = 7
+            button_A = 8
+            button_B = 9
+            full_shield = 10
+
+
+    #old stuff
+    def step_logical_old(self, logical_actions): # currently only supports 1v1. future: list of list for 2v2?
+        done = self._is_done()
+        rewards = None
+        truncated = None
+        infos = {}
+
+        
+        if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
+            
+            if self._current_match_steps < self._max_match_steps:
+                for player in self.players:
+                    if not player.agent_type == "AI":
+                        player.act(self.gamestate)
+                    else:
+                        controller_actions = self._logical_actions_to_controller_actions_fn(logical_actions)
+                        this_agent_controller = get_agent_controller(player)
+                        execute_actions(this_agent_controller, controller_actions)
+            
+            else:
+                all_players_press_nothing(self.players)
+                return self._gamestate_to_obs_space_fn(self.gamestate), 0, True, True, infos
+
+
+            self.gamestate = self.console.step()
+            self._current_match_steps += 1
+
+            done = self._is_done()
+
+            rewards = self.calculate_rewards_v2(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
+        
+        self.previous_gamestate = self.gamestate
+        
+
+        if done:
+            all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
+
+        return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
 
 def get_agent_controller(agent):
     return agent.controller
@@ -865,52 +976,6 @@ def _agent_actions_to_logical_actions_fn_v1(agent_actions):
         if full_shield:
             logical_actions.append(sam_utils.logical_inputs_v1.full_shield)
         
-        return logical_actions
-
-def _agent_actions_to_logical_actions_fn_v2(agent_actions):
-        
-        stick_dir = agent_actions[0]
-        buttonA = agent_actions[1]
-        buttonB = agent_actions[2]
-        full_shield = agent_actions[3]
-
-        logical_actions = []
-
-        if stick_dir == 1:
-            logical_actions.append(sam_utils.logical_inputs_v1.joystick_left_up)
-        
-        elif stick_dir == 3:
-            logical_actions.append(sam_utils.logical_inputs_v1.joystick_up_right)
-
-        elif stick_dir == 5:
-            logical_actions.append(sam_utils.logical_inputs_v1.joystick_right_down)
-
-        elif stick_dir == 7:
-            logical_actions.append(sam_utils.logical_inputs_v1.joystick_down_left)
-
-        elif stick_dir == 8:
-            logical_actions.append(sam_utils.logical_inputs_v1.joystick_left)
-        
-        elif stick_dir == 4:
-            logical_actions.append(sam_utils.logical_inputs_v1.joystick_right)
-
-        elif stick_dir == 2:
-            logical_actions.append(sam_utils.logical_inputs_v1.joystick_up)
-        
-        elif stick_dir == 6:
-            logical_actions.append(sam_utils.logical_inputs_v1.joystick_down)
-
-        if buttonA == 1:
-            logical_actions.append(sam_utils.logical_inputs_v1.button_A)
-        
-        if buttonB == 1:
-            logical_actions.append(sam_utils.logical_inputs_v1.button_B)
-        
-        if full_shield == 1:
-            logical_actions.append(sam_utils.logical_inputs_v1.full_shield)
-        
-        #print('this frame agent action= ' + str(agent_actions) + ' | ' + str(logical_actions))
-
         return logical_actions
 
 

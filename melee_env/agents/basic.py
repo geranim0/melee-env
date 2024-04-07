@@ -22,36 +22,35 @@ class Agent(ABC):
         self.action = 0
         self.press_start = False
         self.self_observation = None
+        
         self.current_frame = 0
 
     @abstractmethod
     def act(self):
         pass
 
-class sam_ai(Agent):
-    def __init__(self, character=None):
-        super().__init__()
-        self.character = character
-        self.agent_type = agent_type.step_controlled_AI
-
-    def act(self):
-        pass
-
 class step_controlled_ai(Agent):
-    def __init__(self, character=None):
+    def __init__(self, gamestate_to_observation_fn, raw_agent_actions_to_logical_fn, logical_to_controller_fn, agent_type, character=None):
         super().__init__()
+        self.gamestate_to_observation_fn = gamestate_to_observation_fn
+        self.raw_agent_actions_to_logical_fn = raw_agent_actions_to_logical_fn
+        self.logical_to_controller_fn = logical_to_controller_fn
+        self.agent_type = agent_type
         self.character = character
-        self.agent_type = agent_type.step_controlled_AI
 
     def act(self):
         pass
 
-class enemy_ai(Agent):
-    def __init__(self, trained_agent_act, character=None):
+#only diff with step_controlled_ai is that this one has an action function (observation_to_raw_inputs_fn)
+class trained_ai(Agent):
+    def __init__(self, gamestate_to_observation_fn, observation_to_raw_inputs_fn, raw_agent_actions_to_logical_fn, logical_to_controller_fn, agent_type, character=None):
         super().__init__()
-        self.trained_agent_act = trained_agent_act
+        self.gamestate_to_observation_fn = gamestate_to_observation_fn
+        self.observation_to_raw_inputs_fn = observation_to_raw_inputs_fn
+        self.raw_agent_actions_to_logical_fn = raw_agent_actions_to_logical_fn
+        self.logical_to_controller_fn = logical_to_controller_fn
+        self.agent_type = agent_type
         self.character = character
-        self.agent_type = agent_type.enemy_controlled_AI
 
     def act(self):
         pass
