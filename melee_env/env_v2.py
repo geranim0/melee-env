@@ -684,7 +684,7 @@ class MeleeEnv_v2(gym.Env):
                             this_agent_controller = get_agent_controller(player)
                             execute_actions(this_agent_controller, controller_actions)
                         elif player.agent_type == agent_type.enemy_controlled_AI:
-                            if player.frame_counter % player.act_every == 0:
+                            if (player.frame_counter % player.act_every == 0) or not players_logical_actions[player]:
                                 obs = player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
                                 raw_actions = player.observation_to_raw_inputs_fn(obs)
                                 logical_actions = player.raw_agent_actions_to_logical_fn(raw_actions)
