@@ -664,7 +664,61 @@ class MeleeEnv_v2(gym.Env):
         pass
 
     def step(self, actions):
-        return self.step_v3(actions)
+        return self.step_v4(actions)
+
+    def step_v4(self, raw_step_controlled_agent_actions):
+        done = self._is_done()
+        rewards = 0
+        truncated = None
+        infos = {}
+
+        players_logical_actions = {}
+        for i in range(0, self._action_repeat):
+            if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
+                
+                if self._current_match_steps < self._max_match_steps:
+                    for player in self.players:
+                        if player.agent_type == agent_type.step_controlled_AI:
+                            logical_actions = player.raw_agent_actions_to_logical_fn(raw_step_controlled_agent_actions)
+                            controller_actions = player.logical_to_controller_fn(logical_actions, i)
+                            this_agent_controller = get_agent_controller(player)
+                            execute_actions(this_agent_controller, controller_actions)
+                        elif player.agent_type == agent_type.enemy_controlled_AI:
+                            if player.frame_counter % player.act_every == 0:
+                                obs = player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
+                                raw_actions = player.observation_to_raw_inputs_fn(obs)
+                                logical_actions = player.raw_agent_actions_to_logical_fn(raw_actions)
+                                players_logical_actions[player] = logical_actions
+                            
+                            player.frame_counter += 1
+                            controller_actions = player.logical_to_controller_fn(players_logical_actions[player], i)
+                            this_agent_controller = get_agent_controller(player)
+                            execute_actions(this_agent_controller, controller_actions)
+                        else:
+                            player.act(self.gamestate)
+
+                
+                else:
+                    all_players_press_nothing(self.players)
+                    return self._gamestate_to_obs_space_fn(self.gamestate), 0, True, True, infos
+
+
+                self.gamestate = self.console.step()
+                self._current_match_steps += 1
+
+                done = self._is_done()
+
+                rewards += self.calculate_rewards_v2(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
+        
+                self.previous_gamestate = self.gamestate
+
+                if done:
+                    all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
+                    break
+
+        return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
+
+
 
     def step_v3(self, raw_step_controlled_agent_actions):
         done = self._is_done()
@@ -683,7 +737,7 @@ class MeleeEnv_v2(gym.Env):
                             this_agent_controller = get_agent_controller(player)
                             execute_actions(this_agent_controller, controller_actions)
                         elif player.agent_type == agent_type.enemy_controlled_AI:
-                            obs = player.gamestate_to_observation_fn(self.gamestate)
+                            obs = player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
                             raw_actions = player.observation_to_raw_inputs_fn(obs)
                             logical_actions = player.raw_agent_actions_to_logical_fn(raw_actions)
                             controller_actions = player.logical_to_controller_fn(logical_actions, i)

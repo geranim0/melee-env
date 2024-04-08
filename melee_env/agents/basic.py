@@ -43,7 +43,7 @@ class step_controlled_ai(Agent):
 
 #only diff with step_controlled_ai is that this one has an action function (observation_to_raw_inputs_fn)
 class trained_ai(Agent):
-    def __init__(self, gamestate_to_observation_fn, observation_to_raw_inputs_fn, raw_agent_actions_to_logical_fn, logical_to_controller_fn, agent_type, character=None):
+    def __init__(self, gamestate_to_observation_fn, observation_to_raw_inputs_fn, raw_agent_actions_to_logical_fn, logical_to_controller_fn, agent_type, act_every, character=None):
         super().__init__()
         self.gamestate_to_observation_fn = gamestate_to_observation_fn
         self.observation_to_raw_inputs_fn = observation_to_raw_inputs_fn
@@ -51,6 +51,8 @@ class trained_ai(Agent):
         self.logical_to_controller_fn = logical_to_controller_fn
         self.agent_type = agent_type
         self.character = character
+        self.act_every = act_every
+        self.frame_counter = act_every / 2
 
     def act(self):
         pass
