@@ -672,7 +672,6 @@ class MeleeEnv_v2(gym.Env):
         truncated = None
         infos = {}
 
-        players_logical_actions = {}
         for i in range(0, self._action_repeat):
             if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
                 
@@ -684,14 +683,14 @@ class MeleeEnv_v2(gym.Env):
                             this_agent_controller = get_agent_controller(player)
                             execute_actions(this_agent_controller, controller_actions)
                         elif player.agent_type == agent_type.enemy_controlled_AI:
-                            if (player.frame_counter % player.act_every == 0) or not player in players_logical_actions:
+                            if (player.frame_counter % player.act_every == 0) or not player.last_logical_actions:
                                 obs = player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
                                 raw_actions = player.observation_to_raw_inputs_fn(obs)
                                 logical_actions = player.raw_agent_actions_to_logical_fn(raw_actions)
-                                players_logical_actions[player] = logical_actions
+                                player.last_logical_actions = logical_actions
                             
                             player.frame_counter += 1
-                            controller_actions = player.logical_to_controller_fn(players_logical_actions[player], i)
+                            controller_actions = player.logical_to_controller_fn(player.last_logical_actions, i)
                             this_agent_controller = get_agent_controller(player)
                             execute_actions(this_agent_controller, controller_actions)
                         else:

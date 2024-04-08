@@ -53,6 +53,7 @@ class trained_ai(Agent):
         self.character = character
         self.act_every = act_every
         self.frame_counter = act_every / 2
+        self.last_logical_actions = None
 
     def act(self):
         pass
