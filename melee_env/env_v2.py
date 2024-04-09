@@ -689,10 +689,10 @@ class MeleeEnv_v2(gym.Env):
                                 logical_actions = player.raw_agent_actions_to_logical_fn(raw_actions)
                                 player.last_logical_actions = logical_actions
                             
-                            player.frame_counter += 1
-                            controller_actions = player.logical_to_controller_fn(player.last_logical_actions, i)
+                            controller_actions = player.logical_to_controller_fn(player.last_logical_actions, player.frame_counter % player.act_every)
                             this_agent_controller = get_agent_controller(player)
                             execute_actions(this_agent_controller, controller_actions)
+                            player.frame_counter += 1
                         else:
                             player.act(self.gamestate)
 

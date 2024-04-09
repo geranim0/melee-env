@@ -51,8 +51,8 @@ class trained_ai(Agent):
         self.logical_to_controller_fn = logical_to_controller_fn
         self.agent_type = agent_type
         self.character = character
-        self.act_every = act_every
-        self.frame_counter = act_every / 2
+        self.act_every:np.uint64 = act_every
+        self.frame_counter:np.uint64 = self.act_every / 2
         self.last_logical_actions = None
 
     def act(self):
