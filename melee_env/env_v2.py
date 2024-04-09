@@ -623,8 +623,13 @@ class MeleeEnv_v2(gym.Env):
                 player.controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 1, 0.5)
                 player.controller.flush()
             self.gamestate = self.console.step()
-                
+
+
+        # reset players (maybe put this in reset in base class?)        
         all_players_press_nothing(self.players)
+        for player in self.players:
+            player.reset()
+
         
         obs, done = self.setup()
         return self._gamestate_to_obs_space_fn(obs), self._get_info() # obs, info

@@ -4,6 +4,7 @@ import numpy as np
 from melee_env.agents.util import *
 import code
 from enum import Enum
+import random
 
 class agent_type(Enum):
     step_controlled_AI = 1
@@ -24,6 +25,9 @@ class Agent(ABC):
         self.self_observation = None
         
         self.current_frame = 0
+
+    def reset(self):
+        pass
 
     @abstractmethod
     def act(self):
@@ -53,6 +57,10 @@ class trained_ai(Agent):
         self.character = character
         self.act_every:np.uint64 = act_every
         self.frame_counter:np.uint64 = self.act_every / 2
+        self.last_logical_actions = None
+
+    def reset(self):
+        self.frame_counter = random.randint(0, self.act_every-1)
         self.last_logical_actions = None
 
     def act(self):
