@@ -10,6 +10,7 @@ from melee_env import sam_utils
 import random
 from melee_env.agents.basic import *
 import gymnasium as gym
+from datetime import datetime
 
 class MeleeEnv_v2(gym.Env):
     #metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
@@ -35,8 +36,6 @@ class MeleeEnv_v2(gym.Env):
 
         self.iso_path = Path(iso_path).resolve()
         self.players = players
-
-        #self.step = self._gen_step(MeleeEnv_v2.agent_actions_to_logical_actions_fn_v2)
 
         self._logical_actions_to_controller_actions_fn = sam_utils.logical_v1_to_libmelee_inputs
         self._gamestate_to_obs_space_fn = self._gamestate_to_obs_space_fn_v1
@@ -92,6 +91,21 @@ class MeleeEnv_v2(gym.Env):
         else:
             return NotImplementedError("num players must be 2 or 4. Got: " + str(num_players))
         
+    @staticmethod
+    def get_action_space_v2(num_players):
+        # left, right, up, down and diags + nothing = 9 
+        # A, B, full R, = 3
+        # => 12
+        num_joystick_horizontal_positions = 3
+        num_joystick_vertical_positions = 3
+
+        if num_players == 2:
+            return gym.spaces.MultiDiscrete([num_joystick_horizontal_positions, num_joystick_vertical_positions, 2, 2, 2])
+        elif num_players == 4:
+            return NotImplementedError("num players must be 2. Got: " + str(num_players))
+        else:
+            return NotImplementedError("num players must be 2 or 4. Got: " + str(num_players))
+        
     
     @staticmethod
     def get_observation_space_v1(num_players):
@@ -117,6 +131,92 @@ class MeleeEnv_v2(gym.Env):
         # stage, projectiles,  
 
         # one hot encoded obs
+        action_len = len(list(melee.enums.Action)) # 385
+        character_len = len(list(melee.enums.Character))
+        facing_len = 1
+        offstage_len = 1
+        on_ground_len = 1
+
+        # todo: try multibinary and integer type and see diff. is this wasteful?
+        # action, character, facing, off_stage, on_ground
+        one_hot_obs = gym.spaces.Box(low=0, high=1, shape=(action_len + character_len + facing_len + offstage_len + on_ground_len,), dtype=np.float32)
+
+        # int obs
+        # action_frame, hitstun_frames_left, invulnerability_left, jumps_left, percent, stock
+        int_obs = gym.spaces.Box(
+            low=0,
+            high=999,
+            shape=(6,),
+            dtype=np.float32)
+
+        #float obs
+        # position_x, position_y, shield strength, speed_air_x_self, speed_ground_x_self, speed_x_attack, speed_y_attack, speed_y_self
+        float_obs = gym.spaces.Box(
+            low=-np.Infinity,
+            high=np.Infinity,
+            shape=(8,),
+            dtype=np.float32)
+        
+
+        if num_players == 2:
+            all_obs_space = gym.spaces.Dict({
+                'one_hot_p1': one_hot_obs,
+                'int_obs_p1': int_obs,
+                'float_obs_p1': float_obs,
+                
+                'one_hot_p2': one_hot_obs,
+                'int_obs_p2': int_obs,
+                'float_obs_p2': float_obs,
+            })
+        elif num_players == 4:
+            all_obs_space = gym.spaces.Dict({
+                'one_hot_p1': one_hot_obs,
+                'int_obs_p1': int_obs,
+                'float_obs_p1': float_obs,
+                
+                'one_hot_p2': one_hot_obs,
+                'int_obs_p2': int_obs,
+                'float_obs_p2': float_obs,
+                
+                'one_hot_p3': one_hot_obs,
+                'int_obs_p3': int_obs,
+                'float_obs_p3': float_obs,
+                
+                'one_hot_p4': one_hot_obs,
+                'int_obs_p4': int_obs,
+                'float_obs_p4': float_obs,
+            })
+        else:
+            raise NotImplementedError('num_players must be 2 or 4')
+
+        return all_obs_space
+    
+
+    @staticmethod
+    def get_observation_space_v2(num_players):
+        # action (enum.Action): one hot (385 bits)
+        # action_frame (int):
+        # character (enum.Character): 
+        # facing (bool): 
+        # hitstun_frames_left (int): 
+        # invulnerability_left (int): 
+        # jumps_left (int): 
+        # off_stage (bool):
+        # on_ground (bool): 
+        # percent (int):
+        # position (float, float): 
+        # shield_strength (float max 60): 
+        # speed_air_x_self (float): 
+        # speed_ground_x_self(float): 
+        # speed_x_attack (float): 
+        # speed_y_attack (float):
+        # speed_y_self (float): 
+        # stock (int): 
+        # ----- for later ---------
+        # stage, projectiles,  
+
+        # one hot encoded obs
+        #stage = 1
         action_len = len(list(melee.enums.Action)) # 385
         character_len = len(list(melee.enums.Character))
         facing_len = 1
@@ -333,8 +433,7 @@ class MeleeEnv_v2(gym.Env):
                 melee.enums.Stage.FOUNTAIN_OF_DREAMS,
                 melee.enums.Stage.YOSHIS_STORY])
         else:
-            stage = melee.enums.Stage.FINAL_DESTINATION
-        print('chosen stage = ' + str(stage))
+            stage = melee.enums.Stage.BATTLEFIELD
         return stage
 
     def _randomize_characters(self):
@@ -367,7 +466,8 @@ class MeleeEnv_v2(gym.Env):
                 melee.enums.Character.YLINK,
                 melee.enums.Character.YOSHI,
                 melee.enums.Character.ZELDA])
-            print('chosen char=' + str(player.character))
+            if player.agent_type == agent_type.step_controlled_AI:
+                print('char = ' + str(player.character) + 'at: ' + str(datetime.now().isoformat))
 
     def _populate_friendly_enemy_ports(self):
         self._friendly_ports = []
@@ -617,7 +717,7 @@ class MeleeEnv_v2(gym.Env):
             self.start()
 
         while self.gamestate.menu_state == melee.Menu.IN_GAME:
-            print('reset, trying to jump offstage')
+            #print('reset, trying to jump offstage')
             for player in self.players:
                 player.controller.release_all()
                 player.controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 1, 0.5)
@@ -643,12 +743,12 @@ class MeleeEnv_v2(gym.Env):
 
         friendly_stocks = [stocks[port] for port in self._friendly_ports]
         if all(stocks == 0 for stocks in friendly_stocks):
-            print('all friendly stocks == 0, resetting')
+            #print('all friendly stocks == 0, resetting')
             return True
         
         enemy_stocks = [stocks[port] for port in self._enemy_ports]
         if all(stocks == 0 for stocks in enemy_stocks):
-            print('all enemy stocks == 0, resetting')
+            #print('all enemy stocks == 0, resetting')
             return True
         
         #if self.gamestate.menu_state == melee.Menu.CHARACTER_SELECT:
@@ -823,9 +923,9 @@ class MeleeEnv_v2(gym.Env):
         truncated = None
         infos = {}
 
-        for player in self.players:
-            if player.character != self.get_characters()[player.controller.port]:
-                print('error! a player chose: ' + str(player.character) + ' but plays as ' + str(self.get_characters()[player.controller.port]))
+        #for player in self.players:
+            #if player.character != self.get_characters()[player.controller.port]:
+                #print('error! a player chose: ' + str(player.character) + ' but plays as ' + str(self.get_characters()[player.controller.port]))
 
         for i in range(0, self._action_repeat):
             if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
@@ -916,21 +1016,6 @@ class MeleeEnv_v2(gym.Env):
         if self.console:
             self.console.stop()
         time.sleep(2)
-
-    class logical_inputs():
-        class v1(Enum):
-            joystick_left = 0
-            joystick_left_up = 1
-            joystick_up = 2
-            joystick_up_right = 3
-            joystick_right = 4
-            joystick_right_down = 5
-            joystick_down = 6
-            joystick_down_left = 7
-            button_A = 8
-            button_B = 9
-            full_shield = 10
-
 
     #old stuff
     def step_logical_old(self, logical_actions): # currently only supports 1v1. future: list of list for 2v2?
