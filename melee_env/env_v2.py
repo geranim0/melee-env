@@ -29,9 +29,10 @@ class MeleeEnv_v2(gym.Env):
         max_match_steps = 60*60*8,
         action_repeat = 12,
         env_num = "0",
-        slippi_port = "51441"):
+        slippi_port = "51441",
+        seed = 69):
 
-        random.seed(2)
+        random.seed(seed)
         self.d = DolphinConfig(slippi_game_path, env_num)
         self.d.set_ff(fast_forward)
 
