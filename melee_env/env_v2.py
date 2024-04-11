@@ -467,7 +467,7 @@ class MeleeEnv_v2(gym.Env):
                 melee.enums.Character.YOSHI,
                 melee.enums.Character.ZELDA])
             if player.agent_type == agent_type.step_controlled_AI:
-                print('char = ' + str(player.character) + 'at: ' + str(datetime.now().isoformat))
+                print('char = ' + str(player.character) + 'at: ' + str(datetime.now().isoformat()))
 
     def _populate_friendly_enemy_ports(self):
         self._friendly_ports = []
@@ -659,6 +659,54 @@ class MeleeEnv_v2(gym.Env):
 
         return rewards
     
+    def calculate_rewards_v3(self, friendly_ports, enemy_ports, previous_gamestate, current_gamestate):
+        # todo: take as arg
+        stock_multiplier = 200
+        damage_multiplier = 1
+
+        if not previous_gamestate:
+            return 0
+
+        previous_stocks = self.get_stocks_v2(previous_gamestate)
+        current_stocks = self.get_stocks_v2(current_gamestate)
+
+        stock_differential = {port: current_stocks[port] - previous_stocks[port] for port in previous_stocks}
+
+        #if done and (stock_differential[port] == 0 for port in stock_differential):
+            #return 0 
+
+        for port in [port for port in stock_differential if stock_differential[port] != 0]:
+            self._dead_ports[port] = True
+
+        previous_damages = self.get_damages_v2(previous_gamestate)
+        current_damages = self.get_damages_v2(current_gamestate)
+
+        damages_differential = {}
+        for port in previous_damages:
+            damages_differential[port] = current_damages[port] - previous_damages[port]
+            
+            if damages_differential[port] < 0 and self._dead_ports[port] == True:
+                damages_differential[port] = 0
+                self._dead_ports[port] = False
+            
+
+        for port in [port for port in damages_differential if damages_differential[port] != 0 and self._dead_ports[port] == True]:
+            self._dead_ports[port] = False
+
+        won_the_game = all(current_stocks[port] == 0 for port in enemy_ports) and not all(current_stocks[port] == 0 for port in friendly_ports)
+
+        stock_rewards = (sum(stock_differential[port] for port in friendly_ports) \
+                        - sum(stock_differential[port] for port in enemy_ports)) \
+                        * stock_multiplier
+    
+
+        damage_rewards = (sum(damages_differential[port] for port in enemy_ports) \
+            - sum(damages_differential[port] for port in friendly_ports)) \
+            * damage_multiplier
+
+        rewards = stock_rewards + damage_rewards
+        return rewards
+
     # returns rewards only for the agent being trained
     def calculate_rewards_v2(self, friendly_ports, enemy_ports, previous_gamestate, current_gamestate):
         # todo: take as arg
@@ -812,7 +860,7 @@ class MeleeEnv_v2(gym.Env):
 
                 done = self._is_done()
 
-                rewards += self.calculate_rewards_v2(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
+                rewards += self.calculate_rewards_v3(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
         
                 self.previous_gamestate = self.gamestate
 
