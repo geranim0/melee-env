@@ -31,6 +31,7 @@ class MeleeEnv_v2(gym.Env):
         env_num = "0",
         slippi_port = "51441"):
 
+        random.seed()
         self.d = DolphinConfig(slippi_game_path, env_num)
         self.d.set_ff(fast_forward)
 
