@@ -60,7 +60,7 @@ class trained_ai(Agent):
         self.last_logical_actions = None
 
     def reset(self):
-        self.frame_counter = random.randint(0, self.act_every-1)
+        self.frame_counter = 0 #random.randint(0, self.act_every-1)
         self.last_logical_actions = None
 
     def act(self):
