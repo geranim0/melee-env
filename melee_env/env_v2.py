@@ -827,27 +827,35 @@ class MeleeEnv_v2(gym.Env):
         truncated = None
         infos = {}
 
+        step_controlled = None
+        trained_controlled = None
+        for player in self.players:
+            if player.agent_type == agent_type.step_controlled_AI:
+                step_controlled = player
+            elif player.agent_type == agent_type.enemy_controlled_AI:
+                trained_controlled = player
+
+        obs = trained_controlled.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
+        raw_actions = trained_controlled.observation_to_raw_inputs_fn(obs)
+
         for i in range(0, self._action_repeat):
             if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
                 
                 if self._current_match_steps < self._max_match_steps:
-                    for player in self.players:
-                        if player.agent_type == agent_type.step_controlled_AI:
-                            logical_actions = player.raw_agent_actions_to_logical_fn(raw_step_controlled_agent_actions)
-                            controller_actions = player.logical_to_controller_fn(logical_actions, i)
-                            this_agent_controller = get_agent_controller(player)
-                            execute_actions(this_agent_controller, controller_actions, debug=False)
-                        elif player.agent_type == agent_type.enemy_controlled_AI:
-                            if (i == 0):
-                                obs = player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
-                                raw_actions = player.observation_to_raw_inputs_fn(obs)
-                            
-                            logical_actions = player.raw_agent_actions_to_logical_fn(raw_actions)
-                            controller_actions = player.logical_to_controller_fn(logical_actions, i)
-                            this_agent_controller = get_agent_controller(player)
-                            execute_actions(this_agent_controller, controller_actions, debug=True)
-                        else:
-                            player.act(self.gamestate)
+
+                    # step acts first no matter what
+                    logical_actions = step_controlled.raw_agent_actions_to_logical_fn(raw_step_controlled_agent_actions)
+                    controller_actions = step_controlled.logical_to_controller_fn(logical_actions, i)
+                    this_agent_controller = get_agent_controller(step_controlled)
+                    execute_actions(this_agent_controller, controller_actions, debug=False)
+
+                    # trained acts 2nd
+                    logical_actions = trained_controlled.raw_agent_actions_to_logical_fn(raw_actions)
+                    controller_actions = trained_controlled.logical_to_controller_fn(logical_actions, i)
+                    this_agent_controller = get_agent_controller(trained_controlled)
+                    execute_actions(this_agent_controller, controller_actions, debug=False)
+                        #else:
+                        #    player.act(self.gamestate)
 
                 
                 else:
