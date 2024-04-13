@@ -2,6 +2,11 @@ import melee
 from melee_env.logical_inputs.logical_inputs_v1 import logical_inputs_v1 as logical_inputs
 
 def _logical_to_libmelee_single_input_v1(logical_input: logical_inputs, action_repeat_count = 0):
+    if logical_input == logical_inputs.joystick_middle:
+        def libmelee_input(controller: melee.Controller, debug=False):
+            controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 0.5, 0.5)
+        return libmelee_input
+    
     if logical_input == logical_inputs.joystick_left_up:
         def libmelee_input(controller: melee.Controller, debug=False):
             controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 0, 1)

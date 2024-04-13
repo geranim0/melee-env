@@ -12,3 +12,4 @@ class logical_inputs_v1(Enum):
     button_A = 8
     button_B = 9
     full_shield = 10
+    joystick_middle = 11

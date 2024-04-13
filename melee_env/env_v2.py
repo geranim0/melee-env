@@ -507,7 +507,7 @@ class MeleeEnv_v2(gym.Env):
                 all_players_press_nothing(self.players)
                 self.gamestate = self.console.step()
                 self.players[0].controller.press_button(melee.enums.Button.BUTTON_START)
-                self.players[0].controller.flush()
+                #self.players[0].controller.flush()
 
             self.gamestate = self.console.step()
             self.players[0].controller.release_all()
@@ -771,7 +771,7 @@ class MeleeEnv_v2(gym.Env):
             for player in self.players:
                 player.controller.release_all()
                 player.controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 1, 0.5)
-                player.controller.flush()
+                #player.controller.flush()
             self.gamestate = self.console.step()
 
 
@@ -1111,7 +1111,7 @@ def execute_actions(controller, actions, debug=False):
     controller.release_all()
     for action in actions:
         action(controller, debug)
-    controller.flush()
+    #controller.flush()
 
 def _agent_actions_to_logical_actions_fn_v1(agent_actions):
         # old stuff with multibinary (was not working with dreamer stuff)
@@ -1173,4 +1173,4 @@ def _agent_actions_to_logical_actions_fn_v1(agent_actions):
 def all_players_press_nothing(players):
     for player in players:
         player.controller.release_all()
-        player.controller.flush()
+        #player.controller.flush()
