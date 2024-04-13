@@ -836,7 +836,7 @@ class MeleeEnv_v2(gym.Env):
                             logical_actions = player.raw_agent_actions_to_logical_fn(raw_step_controlled_agent_actions)
                             controller_actions = player.logical_to_controller_fn(logical_actions, i)
                             this_agent_controller = get_agent_controller(player)
-                            execute_actions(this_agent_controller, controller_actions)
+                            execute_actions(this_agent_controller, controller_actions, debug=False)
                         elif player.agent_type == agent_type.enemy_controlled_AI:
                             if (i == 0):
                                 obs = player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
@@ -845,7 +845,7 @@ class MeleeEnv_v2(gym.Env):
                             logical_actions = player.raw_agent_actions_to_logical_fn(raw_actions)
                             controller_actions = player.logical_to_controller_fn(logical_actions, i)
                             this_agent_controller = get_agent_controller(player)
-                            execute_actions(this_agent_controller, controller_actions)
+                            execute_actions(this_agent_controller, controller_actions, debug=True)
                         else:
                             player.act(self.gamestate)
 
@@ -1107,10 +1107,10 @@ class MeleeEnv_v2(gym.Env):
 def get_agent_controller(agent):
     return agent.controller
 
-def execute_actions(controller, actions):
+def execute_actions(controller, actions, debug=False):
     controller.release_all()
     for action in actions:
-        action(controller)
+        action(controller, debug)
     controller.flush()
 
 def _agent_actions_to_logical_actions_fn_v1(agent_actions):
