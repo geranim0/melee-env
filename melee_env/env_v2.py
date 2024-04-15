@@ -835,8 +835,8 @@ class MeleeEnv_v2(gym.Env):
             elif player.agent_type == agent_type.enemy_controlled_AI:
                 trained_controlled = player
 
-        obs = trained_controlled.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
-        raw_actions = trained_controlled.observation_to_raw_inputs_fn(obs)
+        #obs = trained_controlled.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
+        #raw_actions = trained_controlled.observation_to_raw_inputs_fn(obs)
 
         for i in range(0, self._action_repeat):
             if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
@@ -850,10 +850,16 @@ class MeleeEnv_v2(gym.Env):
                     execute_actions(this_agent_controller, controller_actions, debug=False)
 
                     # trained acts 2nd
-                    logical_actions = trained_controlled.raw_agent_actions_to_logical_fn(raw_actions)
-                    controller_actions = trained_controlled.logical_to_controller_fn(logical_actions, i)
+                    if (trained_controlled.frame_counter % trained_controlled.act_every == 0) or not trained_controlled.last_logical_actions:
+                        obs = trained_controlled.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
+                        raw_actions = trained_controlled.observation_to_raw_inputs_fn(obs)
+                        logical_actions = trained_controlled.raw_agent_actions_to_logical_fn(raw_actions)
+                        trained_controlled.last_logical_actions = logical_actions
+                    
+                    controller_actions = trained_controlled.logical_to_controller_fn(trained_controlled.last_logical_actions, player.frame_counter % player.act_every)
                     this_agent_controller = get_agent_controller(trained_controlled)
                     execute_actions(this_agent_controller, controller_actions, debug=False)
+                    trained_controlled.frame_counter += 1
                         #else:
                         #    player.act(self.gamestate)
 

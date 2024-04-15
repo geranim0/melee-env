@@ -56,11 +56,11 @@ class trained_ai(Agent):
         self.agent_type = agent_type
         self.character = character
         self.act_every:np.uint64 = act_every
-        self.frame_counter:np.uint64 = self.act_every / 2
+        self.frame_counter:np.uint64 = random.randint(0, self.act_every-1)
         self.last_logical_actions = None
 
     def reset(self):
-        self.frame_counter = 0 #random.randint(0, self.act_every-1)
+        self.frame_counter = random.randint(0, self.act_every-1)
         self.last_logical_actions = None
 
     def act(self):
