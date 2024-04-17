@@ -1,8 +1,10 @@
 import numpy as np
 import melee
+import multiprocessing.shared_memory as shm
 import sys
 
-def gamestate_to_obs_v1(gamestate, friendly_ports, enemy_ports):
+# with rgb (single env only)
+def gamestate_to_obs_v2(gamestate, friendly_ports, enemy_ports, rgb):
     # one hot
     action = {port: gamestate.players[port].action for port in gamestate.players.keys()}
     character = {port: gamestate.players[port].character for port in gamestate.players.keys()}
@@ -78,5 +80,7 @@ def gamestate_to_obs_v1(gamestate, friendly_ports, enemy_ports):
         obs[float_dict_idx] = all_floats
 
         current_player_index += 1
+    
+    obs['rgb'] = rgb
     
     return obs

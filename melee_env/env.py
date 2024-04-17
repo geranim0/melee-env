@@ -11,12 +11,13 @@ import copy
 class MeleeEnv:
     def __init__(self, 
         iso_path,
+        slippi_game_path,
         players,
         fast_forward=False, 
         blocking_input=True,
         ai_starts_game=True):
 
-        self.d = DolphinConfig()
+        self.d = DolphinConfig(slippi_game_path)
         self.d.set_ff(fast_forward)
 
         self.iso_path = Path(iso_path).resolve()
@@ -37,6 +38,7 @@ class MeleeEnv:
         self.gamestate = None
         self.previous_gamestate = None
         self.env_is_started = False
+        self.menu_control_agent = None
 
 
     def start(self):

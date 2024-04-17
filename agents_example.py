@@ -7,11 +7,14 @@ parser = argparse.ArgumentParser(description="Example melee-env demonstration.")
 parser.add_argument("--iso", default=None, type=str, 
     help="Path to your NTSC 1.02/PAL SSBM Melee ISO")
 
+parser.add_argument("--slippi_game_path", default=None, type=str,
+    help="path to slippi appimage")
+
 args = parser.parse_args()
 
-players = [Rest(), NOOP(enums.Character.FOX)]
+players = [Shine(), NOOP(enums.Character.FOX)]
 
-env = MeleeEnv(args.iso, players, fast_forward=True)
+env = MeleeEnv(args.iso, args.slippi_game_path, players, fast_forward=True)
 
 episodes = 10000; reward = 0
 env.start()

@@ -34,9 +34,9 @@ class Agent(ABC):
         pass
 
 class step_controlled_ai(Agent):
-    def __init__(self, gamestate_to_observation_fn, raw_agent_actions_to_logical_fn, logical_to_controller_fn, agent_type, character=None):
+    def __init__(self, raw_agent_actions_to_logical_fn, logical_to_controller_fn, agent_type, character=None):
         super().__init__()
-        self.gamestate_to_observation_fn = gamestate_to_observation_fn
+
         self.raw_agent_actions_to_logical_fn = raw_agent_actions_to_logical_fn
         self.logical_to_controller_fn = logical_to_controller_fn
         self.agent_type = agent_type
@@ -47,8 +47,10 @@ class step_controlled_ai(Agent):
 
 #only diff with step_controlled_ai is that this one has an action function (observation_to_raw_inputs_fn)
 class trained_ai(Agent):
-    def __init__(self, gamestate_to_observation_fn, observation_to_raw_inputs_fn, raw_agent_actions_to_logical_fn, logical_to_controller_fn, agent_type, act_every, character=None):
+    def __init__(self, act_space, obs_space, gamestate_to_observation_fn, observation_to_raw_inputs_fn, raw_agent_actions_to_logical_fn, logical_to_controller_fn, agent_type, act_every, character=None):
         super().__init__()
+        self.action_space = act_space
+        self.observation_space = obs_space
         self.gamestate_to_observation_fn = gamestate_to_observation_fn
         self.observation_to_raw_inputs_fn = observation_to_raw_inputs_fn
         self.raw_agent_actions_to_logical_fn = raw_agent_actions_to_logical_fn
@@ -56,7 +58,7 @@ class trained_ai(Agent):
         self.agent_type = agent_type
         self.character = character
         self.act_every:np.uint64 = act_every
-        self.frame_counter:np.uint64 = self.act_every / 2
+        self.frame_counter:np.uint64 = random.randint(0, act_every-1)
         self.last_logical_actions = None
 
     def reset(self):

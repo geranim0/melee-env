@@ -3,15 +3,17 @@ from melee_env.env_v2 import MeleeEnv_v2
 from melee_env.agents.basic import *
 import argparse
 from melee_env import sam_utils
-from melee_env.gamestate_to_obs import gamestate_to_obs_v1
-from melee_env.raw_to_logical_inputs import raw_to_logical_inputs_v1
-from melee_env.logical_to_libmelee_inputs import logical_to_libmelee_inputs_v1
+from melee_env.gamestate_to_obs import gamestate_to_obs_v2
+from melee_env.raw_to_logical_inputs import raw_to_logical_inputs_v2
+from melee_env.logical_to_libmelee_inputs import logical_to_libmelee_inputs_v2
+from melee_env.act_space import act_space_v2
+from melee_env.obs_space import obs_space_v2
 
 def random_act(obs):
     return env.action_space.sample()
 
-def id(x):
-    return x
+def id(*args):
+    return obs_space_v2.get_observation_space_v2(2).sample()
 
 parser = argparse.ArgumentParser(description="Example melee-env demonstration.")
 parser.add_argument("--iso", default=None, type=str, 
@@ -20,7 +22,7 @@ parser.add_argument("--iso", default=None, type=str,
 parser.add_argument("--slippi_game_path", default=None, type=str,
     help="path to slippi appimage")
 
-parser.add_argument("--env_num", default=None, type=str, 
+parser.add_argument("--env_num", default="0", type=str, 
     help="if using more than 1 env")
 
 parser.add_argument("--slippi_port", default="51441", type=str, 
@@ -35,17 +37,35 @@ args = parser.parse_args()
 #players = [Rest(), NOOP(enums.Character.FOX)]
 #players = [NOOP(enums.Character.FOX), NOOP(enums.Character.FOX)]
 #players = [sam_ai(), CPU(melee.enums.Character.JIGGLYPUFF, 1)]
-players = [step_controlled_ai(gamestate_to_obs_v1.gamestate_to_obs_v1,
-              raw_to_logical_inputs_v1.raw_to_logical_inputs_v1, 
-              logical_to_libmelee_inputs_v1.logical_to_libmelee_inputs_v1,
-              agent_type.step_controlled_AI),
-            trained_ai(id, 
-               random_act, 
-               raw_to_logical_inputs_v1.raw_to_logical_inputs_v1, 
-               logical_to_libmelee_inputs_v1.logical_to_libmelee_inputs_v1,
-               agent_type.enemy_controlled_AI)] 
+players = [
+    step_controlled_ai(
+        raw_to_logical_inputs_v2.raw_to_logical_inputs_v2, 
+        logical_to_libmelee_inputs_v2.logical_to_libmelee_inputs_v2,
+        agent_type.step_controlled_AI),
+    trained_ai(
+        act_space_v2.get_action_space_v2(2),
+        obs_space_v2.get_observation_space_v2(2),
+        id, 
+        random_act, 
+        raw_to_logical_inputs_v2.raw_to_logical_inputs_v2, 
+        logical_to_libmelee_inputs_v2.logical_to_libmelee_inputs_v2,
+        agent_type.enemy_controlled_AI,
+        12)]
 
-env = MeleeEnv_v2(args.iso, args.slippi_game_path, players, fast_forward=True, shuffle_controllers_after_each_game=True, num_players=2, action_repeat=12, env_num=args.env_num, slippi_port=args.slippi_port)
+env = MeleeEnv_v2(args.iso, 
+                  args.slippi_game_path, 
+                  players, 
+                  act_space_v2.get_action_space_v2(2),
+                  obs_space_v2.get_observation_space_v2(2),
+                  gamestate_to_obs_v2.gamestate_to_obs_v2,
+                  "melee_shm_frame",
+                  64,
+                  fast_forward=True, 
+                  shuffle_controllers_after_each_game=True, 
+                  num_players=2, 
+                  action_repeat=12, 
+                  env_num=args.env_num, 
+                  slippi_port=args.slippi_port)
 
 episodes = 10000; reward = 0
 env.start()

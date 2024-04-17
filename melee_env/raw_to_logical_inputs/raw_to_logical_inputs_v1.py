@@ -9,8 +9,10 @@ def raw_to_logical_inputs_v1(raw_inputs_from_gamestate_to_obs_v1):
     full_shield = raw_inputs_from_gamestate_to_obs_v1[3]
 
     logical_actions = []
-
-    if stick_dir == 1:
+    if stick_dir == 0:
+        logical_actions.append(logical_inputs_v1.joystick_middle)
+    
+    elif stick_dir == 1:
         logical_actions.append(logical_inputs_v1.joystick_left_up)
     
     elif stick_dir == 3:

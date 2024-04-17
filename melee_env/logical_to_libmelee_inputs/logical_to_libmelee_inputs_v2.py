@@ -1,23 +1,23 @@
 import melee
-from melee_env.logical_inputs.logical_inputs_v1 import logical_inputs_v1 as logical_inputs
+from melee_env.logical_inputs.logical_inputs_v2 import logical_inputs_v2 as logical_inputs
 
-def _logical_to_libmelee_single_input_v1(logical_input: logical_inputs, action_repeat_count = 0):
+def _logical_to_libmelee_single_input_v2(logical_input: logical_inputs):
     if logical_input == logical_inputs.joystick_left_up:
         def libmelee_input(controller: melee.Controller):
             controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 0, 1)
         return libmelee_input
     
-    if logical_input == logical_inputs.joystick_up_right:
+    elif logical_input == logical_inputs.joystick_up_right:
         def libmelee_input(controller: melee.Controller):
             controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 1, 1)
         return libmelee_input
     
-    if logical_input == logical_inputs.joystick_right_down:
+    elif logical_input == logical_inputs.joystick_right_down:
         def libmelee_input(controller: melee.Controller):
             controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 1, 0)
         return libmelee_input
     
-    if logical_input == logical_inputs.joystick_down_left:
+    elif logical_input == logical_inputs.joystick_down_left:
         def libmelee_input(controller: melee.Controller):
             controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 0, 0)
         return libmelee_input
@@ -42,29 +42,29 @@ def _logical_to_libmelee_single_input_v1(logical_input: logical_inputs, action_r
             controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, 0.5, 0)
         return libmelee_input
 
-    elif logical_input == logical_inputs.button_A and action_repeat_count == 0:
+    elif logical_input == logical_inputs.button_A:
         def libmelee_input(controller: melee.Controller):
             controller.press_button(melee.enums.Button.BUTTON_A)
         return libmelee_input
 
-    elif logical_input == logical_inputs.button_B and action_repeat_count == 0:
+    elif logical_input == logical_inputs.button_B:
         def libmelee_input(controller: melee.Controller):
             controller.press_button(melee.enums.Button.BUTTON_B)
         return libmelee_input
     
     elif logical_input == logical_inputs.full_shield:
         def libmelee_input(controller: melee.Controller):
-            controller.press_shoulder(melee.enums.Button.BUTTON_R, 1)
+            controller.press_button(melee.enums.Button.BUTTON_R)
         return libmelee_input
     
     return None
 
 # requires logical_inputs_v1
-def logical_to_libmelee_inputs_v1(logical_inputs_v1, action_repeat_count = 0):    
+def logical_to_libmelee_inputs_v2(logical_inputs):    
     libmelee_inputs = []
 
-    for logical_input in logical_inputs_v1:
-        libmelee_input = _logical_to_libmelee_single_input_v1(logical_input, action_repeat_count)
+    for logical_input in logical_inputs:
+        libmelee_input = _logical_to_libmelee_single_input_v2(logical_input)
         if libmelee_input:
             libmelee_inputs.append(libmelee_input)
     
