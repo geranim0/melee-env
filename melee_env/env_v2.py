@@ -770,7 +770,7 @@ class MeleeEnv_v2(gym.Env):
             with open(filepath + timestamp_str + '__' + self.matchup, 'w') as match_log:
                 for frame in self.debug_raw_actions_per_match.keys():
                     action = self.debug_raw_actions_per_match[frame]
-                    match_log.write(' '.join([frame, action]))
+                    match_log.write(' '.join([frame, str(action)]))
             self.debug_raw_actions_per_match = {}
 
     def reset(self, seed=None, options=None):
@@ -900,6 +900,7 @@ class MeleeEnv_v2(gym.Env):
                     all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
                     break
 
+        self.write_debug_actions_file()
         return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
 
 
