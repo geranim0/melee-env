@@ -77,6 +77,8 @@ class MeleeEnv_v2(gym.Env):
         self._max_match_steps = max_match_steps
         self._action_repeat = action_repeat
         self.console = None
+        self.debug_raw_actions_per_match = {}
+        self.matchup = None
 
 
     @staticmethod
@@ -469,7 +471,8 @@ class MeleeEnv_v2(gym.Env):
                 melee.enums.Character.YOSHI,
                 melee.enums.Character.ZELDA])
             if player.agent_type == agent_type.step_controlled_AI:
-                print('char = ' + str(player.character) + 'at: ' + str(datetime.now().isoformat()))
+                print('char = ' + str(player.character) + ' at: ' + str(datetime.now().isoformat()))
+        self.matchup = '_'.join([str(player.character) for player in self.players])
 
     def _populate_friendly_enemy_ports(self):
         self._friendly_ports = []
@@ -760,8 +763,19 @@ class MeleeEnv_v2(gym.Env):
         rewards = time_tick_neg_reward + stock_rewards + damage_rewards
         return rewards
     
+    def write_debug_actions_file(self):
+        if self.debug_raw_actions_per_match and self.matchup:
+            timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            filepath = "/home/sam/melee_logs/"
+            with open(filepath + timestamp_str + '__' + self.matchup, 'w') as match_log:
+                for frame, action in self.debug_raw_actions_per_match:
+                    match_log.write(' '.join([frame, action]))
+            self.debug_raw_actions_per_match = {}
+
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+
+        self.write_debug_actions_file()
 
         if not self.env_is_started:
             self.start()
@@ -838,6 +852,8 @@ class MeleeEnv_v2(gym.Env):
         #obs = trained_controlled.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
         #raw_actions = trained_controlled.observation_to_raw_inputs_fn(obs)
 
+        self.debug_raw_actions_per_match[str(self.gamestate.frame) + "_F"] = raw_step_controlled_agent_actions
+
         for i in range(0, self._action_repeat):
             if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
                 
@@ -855,6 +871,7 @@ class MeleeEnv_v2(gym.Env):
                         raw_actions = trained_controlled.observation_to_raw_inputs_fn(obs)
                         logical_actions = trained_controlled.raw_agent_actions_to_logical_fn(raw_actions)
                         trained_controlled.last_logical_actions = logical_actions
+                        self.debug_raw_actions_per_match[str(self.gamestate.frame) + "_O"] = raw_actions
                     
                     controller_actions = trained_controlled.logical_to_controller_fn(trained_controlled.last_logical_actions, player.frame_counter % player.act_every)
                     this_agent_controller = get_agent_controller(trained_controlled)
