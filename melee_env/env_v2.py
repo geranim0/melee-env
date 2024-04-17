@@ -768,7 +768,8 @@ class MeleeEnv_v2(gym.Env):
             timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             filepath = "/home/sam/melee_logs/"
             with open(filepath + timestamp_str + '__' + self.matchup, 'w') as match_log:
-                for frame, action in self.debug_raw_actions_per_match:
+                for frame in self.debug_raw_actions_per_match.keys():
+                    action = self.debug_raw_actions_per_match[frame]
                     match_log.write(' '.join([frame, action]))
             self.debug_raw_actions_per_match = {}
 
