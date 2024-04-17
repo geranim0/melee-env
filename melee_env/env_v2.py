@@ -900,7 +900,6 @@ class MeleeEnv_v2(gym.Env):
                     all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
                     break
 
-        self.write_debug_actions_file() #remove this
         return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
 
 
