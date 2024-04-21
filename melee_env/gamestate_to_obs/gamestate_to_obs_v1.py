@@ -2,7 +2,7 @@ import numpy as np
 import melee
 import sys
 
-def gamestate_to_obs_v1(gamestate, friendly_ports, enemy_ports):
+def gamestate_to_obs_v1(gamestate, friendly_ports, enemy_ports, rgb=None):
     # one hot
     action = {port: gamestate.players[port].action for port in gamestate.players.keys()}
     character = {port: gamestate.players[port].character for port in gamestate.players.keys()}
