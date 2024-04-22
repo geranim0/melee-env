@@ -778,7 +778,7 @@ class MeleeEnv_v2(gym.Env):
         super().reset(seed=seed)
 
         #self.write_debug_actions_file()
-        if self.total_match_rewards <= 400:
+        if self.total_match_rewards <= -400:
             self.instant_rematch = True
         else:
             self.instant_rematch = False
