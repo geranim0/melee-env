@@ -79,7 +79,8 @@ class MeleeEnv_v2(gym.Env):
         self.console = None
         self.debug_raw_actions_per_match = {}
         self.matchup = None
-
+        self.total_match_rewards = 0
+        self.instant_rematch = False
 
     @staticmethod
     def get_action_space_v1(num_players):
@@ -527,7 +528,7 @@ class MeleeEnv_v2(gym.Env):
         if self._shuffle_controllers_after_each_game == True:
             self._shuffle_controllers()
         
-        if self._randomize_character == True:
+        if self._randomize_character == True and self.instant_rematch == False:
             self._randomize_characters()
         
         chosen_stage = self._choose_stage()
@@ -776,7 +777,12 @@ class MeleeEnv_v2(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
-        self.write_debug_actions_file()
+        #self.write_debug_actions_file()
+        if self.total_match_rewards <= 400:
+            self.instant_rematch = True
+        else:
+            self.instant_rematch = False
+        self.total_match_rewards = 0
 
         if not self.env_is_started:
             self.start()
@@ -853,7 +859,7 @@ class MeleeEnv_v2(gym.Env):
         #obs = trained_controlled.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports)
         #raw_actions = trained_controlled.observation_to_raw_inputs_fn(obs)
 
-        self.debug_raw_actions_per_match[str(self.gamestate.frame) + "_F"] = raw_step_controlled_agent_actions
+        #self.debug_raw_actions_per_match[str(self.gamestate.frame) + "_F"] = raw_step_controlled_agent_actions
 
         for i in range(0, self._action_repeat):
             if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
@@ -872,7 +878,7 @@ class MeleeEnv_v2(gym.Env):
                         raw_actions = trained_controlled.observation_to_raw_inputs_fn(obs)
                         logical_actions = trained_controlled.raw_agent_actions_to_logical_fn(raw_actions)
                         trained_controlled.last_logical_actions = logical_actions
-                        self.debug_raw_actions_per_match[str(self.gamestate.frame) + "_O"] = raw_actions
+                        #self.debug_raw_actions_per_match[str(self.gamestate.frame) + "_O"] = raw_actions
                     
                     controller_actions = trained_controlled.logical_to_controller_fn(trained_controlled.last_logical_actions, player.frame_counter % player.act_every)
                     this_agent_controller = get_agent_controller(trained_controlled)
@@ -899,7 +905,8 @@ class MeleeEnv_v2(gym.Env):
                 if done:
                     all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
                     break
-
+        
+        self.total_match_rewards += rewards
         return self._gamestate_to_obs_space_fn(self.gamestate), rewards, done, truncated, infos
 
 
