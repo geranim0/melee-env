@@ -80,7 +80,41 @@ class MeleeEnv_v2(gym.Env):
         self.debug_raw_actions_per_match = {}
         self.matchup = None
         self.total_match_rewards = 0
+        
+        self.step_controlled_character = melee.enums.Character.BOWSER
         self.instant_rematch = False
+        self.current_rematch_num = 0
+        high_tier_rematch = 3
+        mid_tier_rematch = 1
+        low_tier_rematch = 0
+        self.max_rematches = {
+                melee.enums.Character.BOWSER: low_tier_rematch,
+                melee.enums.Character.CPTFALCON: high_tier_rematch,
+                melee.enums.Character.DK: low_tier_rematch,
+                melee.enums.Character.DOC: mid_tier_rematch,
+                melee.enums.Character.FALCO: high_tier_rematch,
+                melee.enums.Character.FOX: high_tier_rematch,
+                melee.enums.Character.GAMEANDWATCH: low_tier_rematch,
+                melee.enums.Character.GANONDORF: mid_tier_rematch,
+                melee.enums.Character.JIGGLYPUFF: high_tier_rematch,
+                #melee.enums.Character.KIRBY, has illegal actions 65535 and 396
+                melee.enums.Character.LINK: low_tier_rematch,
+                melee.enums.Character.LUIGI: low_tier_rematch,
+                melee.enums.Character.MARIO: mid_tier_rematch,
+                melee.enums.Character.MARTH: high_tier_rematch,
+                melee.enums.Character.MEWTWO: low_tier_rematch,
+                melee.enums.Character.NESS: low_tier_rematch,
+                melee.enums.Character.PEACH: high_tier_rematch,
+                melee.enums.Character.PICHU: low_tier_rematch,
+                melee.enums.Character.PIKACHU: mid_tier_rematch,
+                melee.enums.Character.POPO: low_tier_rematch,
+                melee.enums.Character.ROY: low_tier_rematch,
+                melee.enums.Character.SAMUS: mid_tier_rematch,
+                #melee.enums.Character.SHEIK, it makes it bug
+                melee.enums.Character.YLINK: low_tier_rematch,
+                melee.enums.Character.YOSHI: mid_tier_rematch,
+                melee.enums.Character.ZELDA: low_tier_rematch
+        }
 
     @staticmethod
     def get_action_space_v1(num_players):
@@ -472,6 +506,7 @@ class MeleeEnv_v2(gym.Env):
                 melee.enums.Character.YOSHI,
                 melee.enums.Character.ZELDA])
             if player.agent_type == agent_type.step_controlled_AI:
+                self.step_controlled_character = player.character
                 print('char = ' + str(player.character) + ' at: ' + str(datetime.now().isoformat()))
         self.matchup = '_'.join([str(player.character) for player in self.players])
 
@@ -778,9 +813,11 @@ class MeleeEnv_v2(gym.Env):
         super().reset(seed=seed)
 
         #self.write_debug_actions_file()
-        if self.total_match_rewards <= -100:
+        if self.total_match_rewards <= -100 and self.current_rematch_num < self.max_rematches[self.step_controlled_character]:
+            self.current_rematch_num += 1
             self.instant_rematch = True
         else:
+            self.current_rematch_num = 0
             self.instant_rematch = False
         self.total_match_rewards = 0
 
