@@ -14,8 +14,6 @@ from datetime import datetime
 import multiprocessing.shared_memory as shm
 
 class MeleeEnv_v2(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 5}
-
     def __init__(self, 
         iso_path,
         slippi_game_path,
@@ -36,6 +34,8 @@ class MeleeEnv_v2(gym.Env):
         env_num = "0",
         slippi_port = "51441",
         seed = 69):
+
+        self.metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 5}
 
         random.seed(seed)
         self.d = DolphinConfig(slippi_game_path, env_num)
