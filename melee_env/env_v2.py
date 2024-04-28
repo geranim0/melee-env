@@ -36,6 +36,7 @@ class MeleeEnv_v2(gym.Env):
         seed = 69):
 
         self.metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 5}
+        self.render_mode = "rgb_array"
 
         random.seed(seed)
         self.d = DolphinConfig(slippi_game_path, env_num)
