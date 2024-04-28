@@ -23,7 +23,6 @@ class MeleeEnv_v2(gym.Env):
         act_space,
         obs_space,
         gamestate_to_obs_fn,
-        rgb_shared_mem_name,
         image_size,
         fast_forward=False, 
         blocking_input=True,
@@ -78,7 +77,7 @@ class MeleeEnv_v2(gym.Env):
         self._action_repeat = action_repeat
         self.console = None
         self.image_size = image_size
-        self.rgb_shared_mem_name = rgb_shared_mem_name
+        self.rgb_shared_mem_name = "rgb_shm" + env_num
         self.image_shared_mem = None
 
 
@@ -98,7 +97,8 @@ class MeleeEnv_v2(gym.Env):
             blocking_input=self.blocking_input,
             tmp_home_directory=True,
             gfx_backend='Vulkan',
-            slippi_port=self.slippi_port)
+            slippi_port=self.slippi_port,
+            rgb_shm_name=self.rgb_shared_mem_name)
 
         # print(self.console.dolphin_home_path)  # add to logging later
         # Configure Dolphin for the correct controller setup, add controllers

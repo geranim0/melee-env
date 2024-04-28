@@ -32,7 +32,7 @@ class DolphinConfig:
         elif self.platform == "darwin":
             self.data_path = self.home / "Library/Application Support"
 
-        self.slippi_path = self.data_path / "melee-env" / env_num / "Slippi"
+        self.slippi_path = self.data_path / "melee-env" / "Slippi"
         #self.slippi_path = self.data_path 
 
         self.slippi_replays_path = self.slippi_path / "replays"
@@ -226,7 +226,7 @@ class DolphinConfig:
                 shell=True,
                 preexec_fn=os.setsid)
 
-            time.sleep(5)
+            time.sleep(5) #todo: fix this shit
             os.killpg(os.getpgid(process.pid), signal.SIGTERM) # send kill signal
             time.sleep(5)
 
