@@ -15,7 +15,7 @@ import code
 
 
 class DolphinConfig:
-    def __init__(self, slippi_game_path_arg):
+    def __init__(self, slippi_game_path_arg, env_num):
 
         # setup paths
         self.home = Path.home()
@@ -32,7 +32,7 @@ class DolphinConfig:
         elif self.platform == "darwin":
             self.data_path = self.home / "Library/Application Support"
 
-        self.slippi_path = self.data_path / "melee-env" / "Slippi"
+        self.slippi_path = self.data_path / "melee-env" / env_num / "Slippi"
         #self.slippi_path = self.data_path 
 
         self.slippi_replays_path = self.slippi_path / "replays"

@@ -39,7 +39,7 @@ class MeleeEnv_v2(gym.Env):
         self.render_mode = "rgb_array"
 
         random.seed(seed)
-        self.d = DolphinConfig(slippi_game_path)
+        self.d = DolphinConfig(slippi_game_path, env_num)
         self.d.set_ff(fast_forward)
 
         self.iso_path = Path(iso_path).resolve()
@@ -80,6 +80,7 @@ class MeleeEnv_v2(gym.Env):
         self.image_size = image_size
         self.rgb_shared_mem_name = "rgb_shm" + env_num
         self.image_shared_mem = None
+        self.env_num = env_num
 
 
     #todo: this doesnt 
