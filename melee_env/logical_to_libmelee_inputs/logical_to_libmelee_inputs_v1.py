@@ -74,6 +74,12 @@ def logical_to_libmelee_inputs_v1(logical_inputs_v1, action_repeat_count = 0):
 def logical_to_libmelee_inputs_v1_1(logical_inputs_v1, action_repeat_count = 0):    
     libmelee_inputs = []
 
+    class press_nothing():
+        def execute(self, controller, character, action_repeat):
+            controller.release_all()
+    
+    libmelee_inputs.append(press_nothing())
+
     for logical_input in logical_inputs_v1:
         libmelee_input = _logical_to_libmelee_single_input_v1(logical_input, action_repeat_count)
         if libmelee_input:
