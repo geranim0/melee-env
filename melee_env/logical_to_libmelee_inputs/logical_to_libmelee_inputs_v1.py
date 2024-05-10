@@ -69,3 +69,19 @@ def logical_to_libmelee_inputs_v1(logical_inputs_v1, action_repeat_count = 0):
             libmelee_inputs.append(libmelee_input)
     
     return libmelee_inputs
+
+# requires logical_inputs_v1, compatibility function with step_v6
+def logical_to_libmelee_inputs_v1_1(logical_inputs_v1, action_repeat_count = 0):    
+    libmelee_inputs = []
+
+    for logical_input in logical_inputs_v1:
+        libmelee_input = _logical_to_libmelee_single_input_v1(logical_input, action_repeat_count)
+        if libmelee_input:
+            class input():
+                def execute(self, controller, character, action_repeat):
+                    libmelee_input(controller)
+                    return True
+
+            libmelee_inputs.append(input())
+    
+    return libmelee_inputs
