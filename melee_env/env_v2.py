@@ -634,7 +634,7 @@ class MeleeEnv_v2(gym.Env):
                     
 
                     # enemy controlled
-                    if (enemy_controlled_player.frame_counter % enemy_controlled_player.act_every == 0) and not got_enemy_action:
+                    if (enemy_controlled_player.frame_counter % enemy_controlled_player.act_every == 0): # and not got_enemy_action:
                         obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
                         raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
                         got_enemy_action = True
@@ -654,9 +654,9 @@ class MeleeEnv_v2(gym.Env):
                 else:
                     all_players_press_nothing(self.players)
 
-                    if not got_enemy_action:
-                        obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
-                        raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
+                    #if not got_enemy_action:
+                    #    obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
+                    #    raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
 
                     return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb()), 0, True, True, infos
 
@@ -673,9 +673,9 @@ class MeleeEnv_v2(gym.Env):
                     all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
                     break
 
-        if not got_enemy_action:
-            obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
-            raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
+        #if not got_enemy_action:
+        #    obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
+        #    raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
         return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb()), rewards, done, truncated, infos
 
     # this one supports rgb
