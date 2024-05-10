@@ -1,7 +1,7 @@
 from melee_env.logical_inputs.logical_inputs_v1 import logical_inputs_v1
 
 # requires data from gamestate_to_obs_v1
-def raw_to_logical_inputs_v1(raw_inputs_from_gamestate_to_obs_v1):
+def raw_to_logical_inputs_v1(raw_inputs_from_gamestate_to_obs_v1, playerstate = None):
         
     stick_dir = raw_inputs_from_gamestate_to_obs_v1[0]
     buttonA = raw_inputs_from_gamestate_to_obs_v1[1]

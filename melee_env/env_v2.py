@@ -35,7 +35,7 @@ class MeleeEnv_v2(gym.Env):
         slippi_port = "51441",
         seed = 69):
 
-        self.metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 5}
+        self.metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 60/action_repeat}
         self.render_mode = "rgb_array"
 
         random.seed(seed)
@@ -99,7 +99,8 @@ class MeleeEnv_v2(gym.Env):
             tmp_home_directory=True,
             gfx_backend='Vulkan',
             slippi_port=self.slippi_port,
-            rgb_shm_name=self.rgb_shared_mem_name)
+            rgb_shm_name=self.rgb_shared_mem_name,
+            online_delay=0)
 
         # print(self.console.dolphin_home_path)  # add to logging later
         # Configure Dolphin for the correct controller setup, add controllers
@@ -151,7 +152,7 @@ class MeleeEnv_v2(gym.Env):
                 melee.enums.Stage.FOUNTAIN_OF_DREAMS,
                 melee.enums.Stage.YOSHIS_STORY])
         else:
-            stage = melee.enums.Stage.BATTLEFIELD
+            stage = melee.enums.Stage.FINAL_DESTINATION
         return stage
 
     def _randomize_characters(self):
@@ -376,6 +377,27 @@ class MeleeEnv_v2(gym.Env):
 
         return rewards
     
+    def calculate_rewards_v4(self, friendly_ports, enemy_ports, previous_gamestate, current_gamestate):
+
+        win_reward = 1000
+
+        if not previous_gamestate:
+            return 0
+
+        current_stocks = self.get_stocks_v2(current_gamestate)
+
+        won_the_game = all(current_stocks[port] == 0 for port in enemy_ports) and not all(current_stocks[port] == 0 for port in friendly_ports)
+        lost_the_game = all(current_stocks[port] == 0 for port in friendly_ports) and not all(current_stocks[port] == 0 for port in enemy_ports)
+
+        if won_the_game:
+            rewards = (1 - (self._current_match_steps / self._max_match_steps)) * win_reward
+        elif lost_the_game:
+            rewards = -win_reward
+        else:
+            rewards = 0
+
+        return rewards
+
     def calculate_rewards_v3(self, friendly_ports, enemy_ports, previous_gamestate, current_gamestate):
         # todo: take as arg
         stock_multiplier = 200
@@ -535,7 +557,82 @@ class MeleeEnv_v2(gym.Env):
         pass
 
     def step(self, actions):
-        return self.step_v5(actions)
+        return self.step_v6(actions)
+
+
+    # this one supports rgb and multiple envs (but only 2 players)
+    def step_v6(self, raw_step_controlled_agent_actions):        
+        done = self._is_done()
+        rewards = 0
+        truncated = None
+        infos = {}
+
+        got_enemy_action = False
+        enemy_controlled_player = next(player for player in self.players if player.agent_type == agent_type.enemy_controlled_AI)
+        step_controlled_player = next(player for player in self.players if player.agent_type == agent_type.step_controlled_AI)
+        
+        # step controlled
+        step_controlled_logical_action = step_controlled_player.raw_agent_actions_to_logical_fn(raw_step_controlled_agent_actions, self.gamestate.players[self._friendly_ports[0]])
+        step_controlled_controller_actions = step_controlled_player.logical_to_controller_fn(step_controlled_logical_action)
+        step_controlled_player.current_actions.extend(step_controlled_controller_actions)
+        step_controlled_player_character = self.gamestate.players[self._friendly_ports[0]].character
+        
+        enemy_controlled_player_character = self.gamestate.players[self._enemy_ports[0]].character
+
+        for i in range(0, self._action_repeat):
+            if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
+                if self._current_match_steps < self._max_match_steps:
+                    # step controlled
+                    execute_actions_v2(step_controlled_player.current_actions,
+                                        step_controlled_player.controller,
+                                        step_controlled_player_character,
+                                        self._action_repeat)
+                    
+
+                    # enemy controlled
+                    if (enemy_controlled_player.frame_counter % enemy_controlled_player.act_every == 0):
+                        obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
+                        raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
+                        got_enemy_action = True
+                        logical_actions = enemy_controlled_player.raw_agent_actions_to_logical_fn(raw_actions, self.gamestate.players[self._enemy_ports[0]])
+                        controller_actions = enemy_controlled_player.logical_to_controller_fn(logical_actions)
+                        enemy_controlled_player.current_actions.extend(controller_actions)
+
+                    #print('current match step: ' + str(self._current_match_steps))
+                    #print('current enemy frame counter : ' + str(enemy_controlled_player.frame_counter))
+                    #print('enemy action len: ' + str(len(enemy_controlled_player.current_actions)))
+                    execute_actions_v2(enemy_controlled_player.current_actions,
+                                        enemy_controlled_player.controller,
+                                        enemy_controlled_player_character,
+                                        self._action_repeat)
+                    enemy_controlled_player.frame_counter += 1
+                
+                else:
+                    all_players_press_nothing(self.players)
+
+                    if not got_enemy_action:
+                        obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
+                        raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
+
+                    return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb()), 0, True, True, infos
+
+                self.gamestate = self.console.step()
+                self._current_match_steps += 1
+
+                done = self._is_done()
+
+                rewards += self.calculate_rewards_v4(self._friendly_ports, self._enemy_ports, self.previous_gamestate, self.gamestate)
+        
+                self.previous_gamestate = self.gamestate
+
+                if done:
+                    all_players_press_nothing(self.players) # if A is pressed at the end, skips char select
+                    break
+
+        if not got_enemy_action:
+            obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
+            raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
+        return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb()), rewards, done, truncated, infos
 
     # this one supports rgb
     def step_v5(self, raw_step_controlled_agent_actions):
@@ -881,6 +978,21 @@ def execute_actions(controller, actions):
     controller.release_all()
     for action in actions:
         action(controller)
+
+
+# works with logical_to_libmelee_inputs_v2 and step_v6
+def execute_actions_v2(actions, controller, character, action_reapeat):
+    #print('begin-----------------------------------' + str(character))
+    finished_actions = []
+    for action in actions:
+        action_finished = action.execute(controller, character, action_reapeat)
+        if action_finished:
+            finished_actions.append(action)
+    for action in finished_actions:
+        actions.remove(action)
+        #    actions.remove(action)
+    #print('end -----------------------------------')
+        
 
 def _agent_actions_to_logical_actions_fn_v1(agent_actions):
         # old stuff with multibinary (was not working with dreamer stuff)

@@ -1,0 +1,30 @@
+import melee
+
+jump_squat_data = {
+    melee.enums.Character.BOWSER: 8,
+    melee.enums.Character.CPTFALCON: 4,
+    melee.enums.Character.DK: 5,
+    melee.enums.Character.DOC: 4,
+    melee.enums.Character.FALCO: 5,
+    melee.enums.Character.FOX: 3,
+    melee.enums.Character.GAMEANDWATCH: 4,
+    melee.enums.Character.GANONDORF: 6,
+    melee.enums.Character.JIGGLYPUFF: 5,
+    melee.enums.Character.KIRBY: 3,
+    melee.enums.Character.LINK: 6,
+    melee.enums.Character.LUIGI: 4,
+    melee.enums.Character.MARIO: 4,
+    melee.enums.Character.MARTH: 4,
+    melee.enums.Character.MEWTWO: 5,
+    melee.enums.Character.NESS: 4,
+    melee.enums.Character.PEACH: 5,
+    melee.enums.Character.PICHU: 3,
+    melee.enums.Character.PIKACHU: 3,
+    melee.enums.Character.POPO: 3,
+    melee.enums.Character.ROY: 5,
+    melee.enums.Character.SAMUS: 3,
+    melee.enums.Character.SHEIK: 3,
+    melee.enums.Character.YLINK: 4,
+    melee.enums.Character.YOSHI: 5,
+    melee.enums.Character.ZELDA: 6
+}

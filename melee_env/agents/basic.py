@@ -19,14 +19,16 @@ class Agent(ABC):
         self.agent_type = None
         self.controller = None #set at env.py:63
         self.character = None
-        #self.port = None  # this is also in controller, maybe redundant?
         self.action = 0
         self.press_start = False
         self.self_observation = None
-        
         self.current_frame = 0
+        self.current_actions = list()
 
     def reset(self):
+        pass
+
+    def execute_actions(self):
         pass
 
     @abstractmethod
