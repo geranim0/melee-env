@@ -39,7 +39,7 @@ class MeleeEnv_v2(gym.Env):
         self.render_mode = "rgb_array"
 
         random.seed(seed)
-        self.d = DolphinConfig(slippi_game_path, env_num)
+        self.d = DolphinConfig(slippi_game_path)
         self.d.set_ff(fast_forward)
 
         self.iso_path = Path(iso_path).resolve()
@@ -100,7 +100,7 @@ class MeleeEnv_v2(gym.Env):
             gfx_backend='Vulkan',
             slippi_port=self.slippi_port,
             rgb_shm_name=self.rgb_shared_mem_name,
-            online_delay=0)
+            online_delay=2) # dont know why but theres 1 frame delay EVEN WITH 0 HERE, so 1+2=3 frames delay
 
         # print(self.console.dolphin_home_path)  # add to logging later
         # Configure Dolphin for the correct controller setup, add controllers
@@ -389,15 +389,46 @@ class MeleeEnv_v2(gym.Env):
     
     def calculate_rewards_v4(self, friendly_ports, enemy_ports, previous_gamestate, current_gamestate):
 
-        win_reward = 1000
+        win_reward = 10000
+        stock_multiplier = 100
+        damage_multiplier = 1
 
         if not previous_gamestate:
             return 0
 
+        previous_stocks = self.get_stocks_v2(previous_gamestate)
         current_stocks = self.get_stocks_v2(current_gamestate)
+
+        stock_differential = {port: current_stocks[port] - previous_stocks[port] for port in previous_stocks}
+
+        for port in [port for port in stock_differential if stock_differential[port] != 0]:
+            self._dead_ports[port] = True
+
+        previous_damages = self.get_damages_v2(previous_gamestate)
+        current_damages = self.get_damages_v2(current_gamestate)
+
+        damages_differential = {}
+        for port in previous_damages:
+            damages_differential[port] = current_damages[port] - previous_damages[port]
+            
+            if damages_differential[port] < 0 and self._dead_ports[port] == True:
+                damages_differential[port] = 0
+                self._dead_ports[port] = False
+
+        for port in [port for port in damages_differential if damages_differential[port] != 0 and self._dead_ports[port] == True]:
+            self._dead_ports[port] = False
 
         won_the_game = all(current_stocks[port] == 0 for port in enemy_ports) and not all(current_stocks[port] == 0 for port in friendly_ports)
         lost_the_game = all(current_stocks[port] == 0 for port in friendly_ports) and not all(current_stocks[port] == 0 for port in enemy_ports)
+
+        stock_rewards = (sum(stock_differential[port] for port in friendly_ports) \
+                        - sum(stock_differential[port] for port in enemy_ports)) \
+                        * stock_multiplier
+    
+
+        damage_rewards = (sum(damages_differential[port] for port in enemy_ports) \
+            - sum(damages_differential[port] for port in friendly_ports)) \
+            * damage_multiplier
 
         if won_the_game:
             rewards = (1 - (self._current_match_steps / self._max_match_steps)) * win_reward
@@ -405,6 +436,8 @@ class MeleeEnv_v2(gym.Env):
             rewards = -win_reward
         else:
             rewards = 0
+
+        rewards = rewards + stock_rewards + damage_rewards
 
         return rewards
 

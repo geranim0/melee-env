@@ -15,7 +15,7 @@ import code
 
 
 class DolphinConfig:
-    def __init__(self, slippi_game_path_arg, env_num = "0"):
+    def __init__(self, slippi_game_path_arg):
 
         # setup paths
         self.home = Path.home()
