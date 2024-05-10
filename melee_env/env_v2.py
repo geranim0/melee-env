@@ -634,7 +634,7 @@ class MeleeEnv_v2(gym.Env):
                     
 
                     # enemy controlled
-                    if (enemy_controlled_player.frame_counter % enemy_controlled_player.act_every == 0):
+                    if (enemy_controlled_player.frame_counter % enemy_controlled_player.act_every == 0) and not got_enemy_action:
                         obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
                         raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
                         got_enemy_action = True
