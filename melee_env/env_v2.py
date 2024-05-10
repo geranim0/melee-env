@@ -99,8 +99,8 @@ class MeleeEnv_v2(gym.Env):
             tmp_home_directory=True,
             gfx_backend='Vulkan',
             slippi_port=self.slippi_port,
-            rgb_shm_name=self.rgb_shared_mem_name,
-            online_delay=2) # dont know why but theres 1 frame delay EVEN WITH 0 HERE, so 1+2=3 frames delay
+            rgb_shm_name=self.rgb_shared_mem_name)
+            #online_delay=2) # dont know why but theres 1 frame delay EVEN WITH 0 HERE, so 1+2=3 frames delay
 
         # print(self.console.dolphin_home_path)  # add to logging later
         # Configure Dolphin for the correct controller setup, add controllers
