@@ -31,16 +31,16 @@ def random_act(obs):
 
     count += 1
     if count % 8 != 0:
-        return 0
+        return 5
 
     #action += 1
     #return action
     if left:
         left = 0
-        return 0
+        return 5
     else:
         left = 1
-        return 19
+        return 5
     
     #return env.action_space.sample()
 
@@ -83,7 +83,7 @@ players = [
         raw_to_logical_inputs_v3.raw_to_logical_inputs_v3, 
         logical_to_libmelee_inputs_v3.logical_to_libmelee_inputs_v3,
         agent_type.enemy_controlled_AI,
-        12, melee.enums.Character.FOX)]
+        12, melee.enums.Character.JIGGLYPUFF)]
 
 env = MeleeEnv_v2(args.iso, 
                   args.slippi_game_path, 
@@ -94,7 +94,7 @@ env = MeleeEnv_v2(args.iso,
                   64,
                   fast_forward=True, 
                   shuffle_controllers_after_each_game=True, 
-                  randomize_stage=False,
+                  randomize_stage=True,
                   randomize_character=False,
                   num_players=2, 
                   action_repeat=12, 

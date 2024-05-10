@@ -211,12 +211,22 @@ class MeleeEnv_v2(gym.Env):
                             character=player.character,
                             gamestate=self.gamestate,
                             controller=player.controller,
-                            costume=0, # todo: random this
+                            costume=player.costume, # todo: random this
                             swag=False,
                             start=False,
                             cpu_level=player.lvl if player.agent_type == agent_type.CPU else 0):
                 #print('player port: ' + str(player.controller.port) + ' just chose ' + str(player.character))
                 self.gamestate = self.console.step()
+
+        skin_num_pressed = {player: 0 for player in self.players}
+        for i in range(0, 4):
+            for player in self.players:
+                if skin_num_pressed[player] < player.costume:
+                    player.controller.press_button(melee.enums.Button.BUTTON_Y)
+                    skin_num_pressed[player] += 1
+            self.gamestate = self.console.step()
+            self.gamestate = self.console.step()
+            
         
         current_frame = 0
         while self.gamestate.menu_state != melee.Menu.STAGE_SELECT:
@@ -604,7 +614,7 @@ class MeleeEnv_v2(gym.Env):
                     execute_actions_v2(enemy_controlled_player.current_actions,
                                         enemy_controlled_player.controller,
                                         enemy_controlled_player_character,
-                                        self._action_repeat)
+                                        enemy_controlled_player.act_every)
                     enemy_controlled_player.frame_counter += 1
                 
                 else:

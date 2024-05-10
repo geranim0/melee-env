@@ -367,7 +367,6 @@ def logical_to_libmelee_inputs_v3(logical_input: li):
             ]
 
         case li.D_0_1_0:
-            print('down b returned')
             ret = [
                 move_joystick(melee.enums.Button.BUTTON_MAIN, 0.5, 0),
                 release_button(melee.enums.Button.BUTTON_A),

@@ -71,7 +71,7 @@ def logical_to_libmelee_inputs_v1(logical_inputs_v1, action_repeat_count = 0):
     return libmelee_inputs
 
 # requires logical_inputs_v1, compatibility function with step_v6
-def logical_to_libmelee_inputs_v1_1(logical_inputs_v1, action_repeat_count = 0):    
+def logical_to_libmelee_inputs_v1_1(logical_inputs_v1):    
     libmelee_inputs = []
 
     class press_nothing():
@@ -81,13 +81,22 @@ def logical_to_libmelee_inputs_v1_1(logical_inputs_v1, action_repeat_count = 0):
     libmelee_inputs.append(press_nothing())
 
     for logical_input in logical_inputs_v1:
-        libmelee_input = _logical_to_libmelee_single_input_v1(logical_input, action_repeat_count)
-        if libmelee_input:
-            class input():
-                def execute(self, controller, character, action_repeat):
+        class input():
+            def __init__(self) -> None:
+                self.frame = 0
+            def execute(self, controller, character, action_repeat):
+                libmelee_input = _logical_to_libmelee_single_input_v1(logical_input, self.frame)
+                if libmelee_input:
                     libmelee_input(controller)
+                else:
                     return True
+                
+                if self.frame >= action_repeat:
+                    return True
+                else:
+                    self.frame += 1
+                    return False
 
-            libmelee_inputs.append(input())
+        libmelee_inputs.append(input())
     
     return libmelee_inputs

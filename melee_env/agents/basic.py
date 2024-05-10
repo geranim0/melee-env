@@ -5,6 +5,10 @@ from melee_env.agents.util import *
 import code
 from enum import Enum
 import random
+import time
+
+def current_nanos_time():
+    return round(time.time() * 1000000000)
 
 class agent_type(Enum):
     step_controlled_AI = 1
@@ -16,6 +20,7 @@ class agent_type(Enum):
 
 class Agent(ABC):
     def __init__(self):
+        random.seed(current_nanos_time())
         self.agent_type = None
         self.controller = None #set at env.py:63
         self.character = None
@@ -24,9 +29,11 @@ class Agent(ABC):
         self.self_observation = None
         self.current_frame = 0
         self.current_actions = list()
+        self.costume = random.randint(0, 3)
 
     def reset(self):
-        pass
+        self.costume = random.randint(0, 3)
+        print(self.costume)
 
     def execute_actions(self):
         pass
@@ -43,6 +50,9 @@ class step_controlled_ai(Agent):
         self.logical_to_controller_fn = logical_to_controller_fn
         self.agent_type = agent_type
         self.character = character
+
+    def reset(self):
+        super().reset()
 
     def act(self):
         pass
@@ -64,6 +74,8 @@ class trained_ai(Agent):
         self.last_logical_actions = None
 
     def reset(self):
+        super().reset()
+
         self.frame_counter = random.randint(0, self.act_every-1)
         self.last_logical_actions = None
 
