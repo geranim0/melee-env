@@ -21,7 +21,6 @@ class press_button_forever():
 
     def execute(self, controller, character, frame, action_repeat):
         if frame == 0:
-            print('pressed: ' + str(self.button))
             controller.press_button(self.button)
             return True
         
