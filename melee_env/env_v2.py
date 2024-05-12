@@ -667,11 +667,15 @@ class MeleeEnv_v2(gym.Env):
                     #    raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
 
                     return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb(), completion_ratio), 0, True, True, infos
+                
 
                 self.gamestate = self.console.step()
 
-                if not self.gamestate:
+                while not self.gamestate:
                     print('warning: gamestate was None in at line 671. a')
+                    self.gamestate = self.console.step()
+                    print('stepped')
+
                 self._current_match_steps += 1
 
                 done = self._is_done()
