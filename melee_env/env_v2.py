@@ -562,7 +562,7 @@ class MeleeEnv_v2(gym.Env):
 
         
         obs, done = self.setup()
-        return self.gamestate_to_obs_fn(obs, self._friendly_ports, self._enemy_ports, self.get_rgb()), self._get_info() # obs, info
+        return self.gamestate_to_obs_fn(obs, self._friendly_ports, self._enemy_ports, self.get_rgb(), 1), self._get_info() # obs, info
 
     def _get_info(self):
         return {}
