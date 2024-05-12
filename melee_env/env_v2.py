@@ -606,6 +606,11 @@ class MeleeEnv_v2(gym.Env):
 
     # this one supports rgb and multiple envs (but only 2 players)
     def step_v6(self, raw_step_controlled_agent_actions):        
+        if not self.gamestate:
+            print('warning: gamestate was None in stepv6')
+            self.gamestate = self.console.step()
+        if not self.gamestate:
+            print('MEGA ERROR: gamestate was None EVEN AFTER THE STEP !!!!')
         done = self._is_done()
         rewards = 0
         truncated = None
