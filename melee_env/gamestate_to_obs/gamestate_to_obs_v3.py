@@ -4,7 +4,7 @@ import multiprocessing.shared_memory as shm
 import sys
 
 # with rgb (single env only)
-def gamestate_to_obs_v3(gamestate, friendly_ports, enemy_ports, rgb):
+def gamestate_to_obs_v3(gamestate, friendly_ports, enemy_ports, rgb, match_completion_ratio):
 
     # int obs
     jumps_left = {port: gamestate.players[port].jumps_left for port in gamestate.players.keys()}
@@ -40,5 +40,6 @@ def gamestate_to_obs_v3(gamestate, friendly_ports, enemy_ports, rgb):
         current_player_index += 1
     
     obs['rgb'] = rgb
+    obs['match_completion_ratio'] = match_completion_ratio
     
     return obs

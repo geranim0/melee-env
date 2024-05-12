@@ -624,6 +624,9 @@ class MeleeEnv_v2(gym.Env):
         enemy_controlled_player_character = self.gamestate.players[self._enemy_ports[0]].character
 
         for i in range(0, self._action_repeat):
+
+            completion_ratio = 1 - (self._current_match_steps / self._max_match_steps)
+            
             if self.gamestate.menu_state == melee.Menu.IN_GAME and not done:
                 if self._current_match_steps < self._max_match_steps:
                     # step controlled
@@ -635,7 +638,7 @@ class MeleeEnv_v2(gym.Env):
 
                     # enemy controlled
                     if (enemy_controlled_player.frame_counter % enemy_controlled_player.act_every == 0): # and not got_enemy_action:
-                        obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
+                        obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb(), completion_ratio)
                         raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
                         got_enemy_action = True
                         logical_actions = enemy_controlled_player.raw_agent_actions_to_logical_fn(raw_actions, self.gamestate.players[self._enemy_ports[0]])
@@ -658,7 +661,7 @@ class MeleeEnv_v2(gym.Env):
                     #    obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
                     #    raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
 
-                    return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb()), 0, True, True, infos
+                    return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb(), completion_ratio), 0, True, True, infos
 
                 self.gamestate = self.console.step()
                 self._current_match_steps += 1
@@ -676,7 +679,7 @@ class MeleeEnv_v2(gym.Env):
         #if not got_enemy_action:
         #    obs = enemy_controlled_player.gamestate_to_observation_fn(self.gamestate, self._enemy_ports, self._friendly_ports, self.get_rgb())
         #    raw_actions = enemy_controlled_player.observation_to_raw_inputs_fn(obs)
-        return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb()), rewards, done, truncated, infos
+        return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb(), completion_ratio), rewards, done, truncated, infos
 
     # this one supports rgb
     def step_v5(self, raw_step_controlled_agent_actions):

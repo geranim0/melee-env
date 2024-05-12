@@ -45,7 +45,8 @@ def get_observation_space_v3(num_players):
             dtype=np.float32)
         
         rgb_obs = gym.spaces.Box(low=0, high=255, shape=(screen_size, screen_size, 3), dtype=np.uint8)
-        
+        match_completion_ratio = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
+
         if num_players == 2:
             all_obs_space = gym.spaces.Dict({
                 'int_obs_p1': int_obs,
@@ -54,7 +55,8 @@ def get_observation_space_v3(num_players):
                 'int_obs_p2': int_obs,
                 'float_obs_p2': float_obs,
 
-                'rgb': rgb_obs
+                'rgb': rgb_obs,
+                'match_completion_ratio': match_completion_ratio
             })
         elif num_players == 4:
             all_obs_space = gym.spaces.Dict({
@@ -70,7 +72,8 @@ def get_observation_space_v3(num_players):
                 'int_obs_p4': int_obs,
                 'float_obs_p4': float_obs,
 
-                'rgb': rgb_obs
+                'rgb': rgb_obs,
+                'match_completion_ratio': match_completion_ratio
             })
         else:
             raise NotImplementedError('num_players must be 2 or 4')
