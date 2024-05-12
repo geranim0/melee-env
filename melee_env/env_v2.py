@@ -669,6 +669,9 @@ class MeleeEnv_v2(gym.Env):
                     return self.gamestate_to_obs_fn(self.gamestate, self._friendly_ports, self._enemy_ports, self.get_rgb(), completion_ratio), 0, True, True, infos
 
                 self.gamestate = self.console.step()
+
+                if not self.gamestate:
+                    print('warning: gamestate was None in at line 671. a')
                 self._current_match_steps += 1
 
                 done = self._is_done()
@@ -977,6 +980,9 @@ class MeleeEnv_v2(gym.Env):
         for player in self.players:
             if player.controller:
                 player.controller.disconnect()
+
+        print('CLOSING')
+
         self.gamestate = None
         self.previous_gamestate = None
 
